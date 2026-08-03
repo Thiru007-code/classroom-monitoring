@@ -3,8 +3,7 @@ db.py — SQLite database setup using SQLAlchemy
 """
 
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 from backend.config import DATABASE_URL
 
