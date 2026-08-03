@@ -1,0 +1,38 @@
+# Environment & Virtual Env
+venv/
+.venv/
+env/
+ENV/
+*.env
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+dist/
+build/
+
+# Python Cache & Byte-code
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database & Logs
+*.db
+*.sqlite3
+*.log
+classroom_monitor.log
+classroom_monitoring.db
+
+# Large Model Weights
+*.pt
+yolov8n.pt
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

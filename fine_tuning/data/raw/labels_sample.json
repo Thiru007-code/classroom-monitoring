@@ -1,0 +1,41 @@
+[
+  {
+    "image": "classroom_001.jpg",
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "estimated_student_count": 28,
+    "engaged_students_count": 22,
+    "detected_activity": "trainer_teaching",
+    "detected_infrastructure": [
+      "projector",
+      "whiteboard"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainer is at the board explaining content. 28 students visible, majority attentive."
+  },
+  {
+    "image": "classroom_002.jpg",
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "estimated_student_count": 25,
+    "engaged_students_count": 25,
+    "detected_activity": "practical_session",
+    "detected_infrastructure": [
+      "computer",
+      "internet"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Students working on computers. Trainer walking around assisting."
+  },
+  {
+    "image": "classroom_003.jpg",
+    "trainer_present": false,
+    "trainer_status": "absent",
+    "estimated_student_count": 15,
+    "engaged_students_count": 5,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [],
+    "curriculum_match": "not_matched",
+    "reasoning": "No trainer visible. Students appear idle and unfocused."
+  }
+]

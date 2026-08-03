@@ -1,0 +1,89 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Ollama Modelfile — Classroom Quality Monitoring System
+# ─────────────────────────────────────────────────────────────────────────────
+# PURPOSE:
+#   This Modelfile creates a customized version of qwen2.5vl:7b specifically
+#   trained (via system prompt) to analyze classroom images for the
+#   Skill Development Training Program quality monitoring system.
+#
+# HOW TO CREATE THE CUSTOM MODEL:
+#   ollama create classroom-qwen -f backend/fine_tuning/Modelfile
+#
+# HOW TO USE THE CUSTOM MODEL:
+#   1. Update backend/config.py:
+#      OLLAMA_MODEL_NAME = "classroom-qwen:latest"
+#   2. Restart the API server — it will automatically use this model
+#
+# HOW TO TEST IT DIRECTLY IN TERMINAL:
+#   ollama run classroom-qwen
+#
+# HOW TO DELETE AND REBUILD:
+#   ollama rm classroom-qwen
+#   ollama create classroom-qwen -f backend/fine_tuning/Modelfile
+#
+# NOTE: This is "Option A" fine-tuning — it only customizes the system prompt.
+#       It does NOT update the model weights. For full weight fine-tuning (QLoRA),
+#       see finetune_qwen.py and README.md (Option B).
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# BASE MODEL
+# ─────────────────────────────────────────────────────────────────────────────
+# Uses the qwen2.5vl:7b model already downloaded in your Ollama.
+# Location: C:\Users\Thiruvelan C\.ollama\models\blobs\
+# Size: ~6.0 GB (GGUF quantized format)
+FROM qwen2.5vl:7b
+
+
+# SYSTEM PROMPT
+# ─────────────────────────────────────────────────────────────────────────────
+# This system prompt is injected at the start of EVERY conversation.
+# It defines the model's role, task, and strict output format.
+# The model is told to ONLY return JSON — this prevents free-text responses
+# that would break the JSON parser in analysis_pipeline.py.
+SYSTEM """You are an AI classroom quality analyst for a government skill development training program (NSDC/NSTI).
+
+Your job is to analyze classroom images and return structured JSON data about:
+- Whether the trainer is present and actively teaching
+- The number of students present and engaged
+- The type of classroom activity happening
+- What infrastructure/equipment is visible
+- Whether the activity matches a planned curriculum
+
+Always respond ONLY with valid JSON. Never add any text before or after the JSON.
+Be accurate, objective, and base all observations strictly on what is visible in the image."""
+
+
+# MODEL PARAMETERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+# temperature: Controls randomness in output.
+#   0   = fully deterministic (same image → same JSON every time) ✅ BEST for structured output
+#   0.5 = some variation
+#   1.0 = highly random (bad for JSON parsing)
+PARAMETER temperature 0
+
+# num_predict: Maximum number of tokens to generate per response.
+#   512 is enough for the JSON structure we need (~200–300 tokens typical).
+#   Increase to 1024 if the model truncates long reasoning fields.
+PARAMETER num_predict 512
+
+# top_p: Nucleus sampling threshold (only used when temperature > 0).
+#   At temperature=0, this has no effect. Kept here for safety if you
+#   ever increase temperature for testing.
+PARAMETER top_p 0.9
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPTIONAL PARAMETERS (uncomment to enable):
+# ─────────────────────────────────────────────────────────────────────────────
+
+# num_ctx: Context window size (tokens). Default is 2048 for qwen2.5vl.
+# Increase if you send very long prompts with large images.
+# PARAMETER num_ctx 4096
+
+# repeat_penalty: Penalizes repeated tokens. Helps avoid looping in output.
+# PARAMETER repeat_penalty 1.1
+
+# stop: Tokens that stop generation. Useful to prevent extra text after JSON.
+# PARAMETER stop "}"
+# ─────────────────────────────────────────────────────────────────────────────
