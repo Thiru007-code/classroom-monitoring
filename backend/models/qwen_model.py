@@ -160,7 +160,8 @@ class QwenVLModel:
     ) -> str:
         """
         Generate a structured prompt for classroom analysis.
-        Designed to produce reliable JSON output from Qwen2.5-VL.
+        Designed to produce reliable JSON output from Qwen2.5-VL with non-classroom validation
+        and strict staff vs student distinction rules.
         """
         infra_list = ", ".join(infrastructure_required)
         return f"""You are an AI classroom quality analyst for a skill development training program.
@@ -170,25 +171,29 @@ Job Role: {job_role}
 Planned Activity Today: {curriculum_planned}
 Required Infrastructure: {infra_list}
 
-Analyze this classroom image carefully. Respond ONLY with valid JSON in exactly this format (no extra text before or after):
+Analyze this image carefully. Respond ONLY with valid JSON in exactly this format (no extra text before or after):
 
 {{
+  "is_classroom": true,
   "trainer_present": true,
   "trainer_status": "teaching",
+  "staff_count": 1,
   "estimated_student_count": 25,
   "engaged_students_count": 20,
   "detected_activity": "trainer_teaching",
-  "detected_infrastructure": ["projector", "whiteboard"],
+  "detected_infrastructure": ["projector", "whiteboard", "computer", "desk", "chair"],
   "curriculum_match": "fully_matched",
-  "reasoning": "Brief explanation of what is visible in the image."
+  "reasoning": "Brief explanation of image validity, staff presence, student count, and visible objects."
 }}
 
-Rules:
+Strict Rules:
+- is_classroom: Set false if the image does NOT show a classroom, vocational workshop, computer lab, or training institute (e.g. outdoors, living room, office, hallway, street, blank image).
+- trainer_present & trainer_status: Set trainer_present=false and trainer_status="absent" unless a person is clearly conducting instruction/presenting/writing at board at front of room. NEVER classify a student as trainer/staff.
 - trainer_status must be one of: "teaching", "present_inactive", "absent"
-- detected_activity must be one of: "practical_session", "trainer_teaching", "group_discussion", "assessment", "students_idle", "empty_classroom"
+- detected_activity must be one of: "practical_session", "trainer_teaching", "group_discussion", "assessment", "students_idle", "empty_classroom", "not_a_classroom"
 - curriculum_match must be one of: "fully_matched", "partially_matched", "not_matched"
-- detected_infrastructure: only list items you can actually see in the image
-- Base ALL answers strictly on what is visible in the image
+- detected_infrastructure: list all visible equipment and objects (projector, whiteboard, smartboard, computer, laptop, desk, chair, podium, fan, tools, safety_gear).
+- Base ALL answers strictly on what is visible in the image.
 
 Output ONLY the JSON object, nothing else."""
 

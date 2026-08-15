@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 8
+names: ['handrise', 'look_forward', 'read', 'sleep', 'stand', 'turn_head', 'using_device', 'write']
+
+roboflow:
+  workspace: ghulams-workspace
+  project: ghulams-workspace
+  version: dataset
+  license: Private
+  url: https://app.roboflow.com/ghulams-workspace/ghulams-workspace/dataset

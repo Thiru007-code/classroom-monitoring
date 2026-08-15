@@ -226,10 +226,39 @@ class QualityScorer:
         registered_students: int,
         present_students: int,
         curriculum_match: str,
+        is_classroom: bool = True,
     ) -> Dict:
         """
         Run all 6 scoring steps and return complete result.
+        Handles non-classroom images by short-circuiting to 0 Quality Score.
         """
+        if not is_classroom or detected_activity == "not_a_classroom":
+            logger.warning("Image flagged as non-classroom. Returning 0 Quality Score.")
+            return {
+                "score_breakdown": {
+                    "trainer_presence": 0.0,
+                    "student_engagement": 0.0,
+                    "classroom_activity": 0.0,
+                    "infrastructure": 0.0,
+                    "attendance": 0.0,
+                    "curriculum_compliance": 0.0,
+                },
+                "weighted_contributions": {
+                    "trainer_presence": 0.0,
+                    "student_engagement": 0.0,
+                    "classroom_activity": 0.0,
+                    "infrastructure": 0.0,
+                    "attendance": 0.0,
+                    "curriculum_compliance": 0.0,
+                },
+                "quality_score": 0.0,
+                "quality_label": "Invalid Classroom Image",
+                "alerts": [{
+                    "severity": "critical",
+                    "message": "🚨 CRITICAL: Uploaded image is not a valid classroom or training lab setting."
+                }],
+            }
+
         tp = self.compute_trainer_presence(trainer_status)
         se = self.compute_student_engagement(total_students, engaged_students)
         ca = self.compute_classroom_activity(detected_activity)

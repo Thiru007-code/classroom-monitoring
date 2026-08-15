@@ -43,7 +43,11 @@ from typing import List, Dict
 # ─────────────────────────────────────────────
 # Paths
 # ─────────────────────────────────────────────
-BASE_DIR = Path(__file__).resolve().parent / "data"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT_DATA_DIR = PROJECT_ROOT / "fine_tuning" / "data"
+LOCAL_DATA_DIR = Path(__file__).resolve().parent / "data"
+
+BASE_DIR = ROOT_DATA_DIR if ROOT_DATA_DIR.exists() else LOCAL_DATA_DIR
 RAW_DATA_DIR = BASE_DIR / "raw"
 IMAGES_DIR = RAW_DATA_DIR / "images"
 LABELS_FILE = RAW_DATA_DIR / "labels.json"
@@ -62,20 +66,26 @@ def build_sharegpt_entry(label: Dict, images_dir: Path) -> Dict:
     """
     Convert a single label into a ShareGPT-format training entry.
 
-    This is the format LLaMA-Factory expects for Qwen-VL fine-tuning.
+    This is the format LLaMA-Factory / HuggingFace expects for Qwen-VL fine-tuning.
     """
     image_path = str(images_dir / label["image"])
 
+    is_cls = label.get("is_classroom", True)
+    trainer_pres = label.get("trainer_present", False)
+    staff_cnt = label.get("staff_count", 1 if trainer_pres else 0)
+
     # Build the expected JSON answer
     expected_answer = {
-        "trainer_present": label["trainer_present"],
-        "trainer_status": label["trainer_status"],
-        "estimated_student_count": label["estimated_student_count"],
-        "engaged_students_count": label["engaged_students_count"],
-        "detected_activity": label["detected_activity"],
-        "detected_infrastructure": label["detected_infrastructure"],
-        "curriculum_match": label["curriculum_match"],
-        "reasoning": label["reasoning"],
+        "is_classroom": is_cls,
+        "trainer_present": trainer_pres,
+        "trainer_status": label.get("trainer_status", "teaching" if trainer_pres else "absent"),
+        "staff_count": staff_cnt,
+        "estimated_student_count": label.get("estimated_student_count", 0),
+        "engaged_students_count": label.get("engaged_students_count", 0),
+        "detected_activity": label.get("detected_activity", "trainer_teaching" if is_cls else "not_a_classroom"),
+        "detected_infrastructure": label.get("detected_infrastructure", []),
+        "curriculum_match": label.get("curriculum_match", "fully_matched" if is_cls else "not_matched"),
+        "reasoning": label.get("reasoning", "Classroom quality evaluation."),
     }
 
     return {
@@ -91,19 +101,25 @@ def build_sharegpt_entry(label: Dict, images_dir: Path) -> Dict:
                         "type": "text",
                         "text": (
                             "You are an AI classroom quality analyst for a skill development training program.\n\n"
-                            "Analyze this classroom image and respond ONLY in this JSON format:\n\n"
+                            "Analyze this image carefully and respond ONLY in this JSON format:\n\n"
                             "{\n"
+                            '  "is_classroom": true/false,\n'
                             '  "trainer_present": true/false,\n'
                             '  "trainer_status": "teaching" | "present_inactive" | "absent",\n'
+                            '  "staff_count": <number>,\n'
                             '  "estimated_student_count": <number>,\n'
                             '  "engaged_students_count": <number>,\n'
                             '  "detected_activity": "practical_session" | "trainer_teaching" | '
-                            '"group_discussion" | "assessment" | "students_idle" | "empty_classroom",\n'
-                            '  "detected_infrastructure": ["item1", "item2"],\n'
+                            '"group_discussion" | "assessment" | "students_idle" | "empty_classroom" | "not_a_classroom",\n'
+                            '  "detected_infrastructure": ["projector", "whiteboard", "computer", "desk", "chair"],\n'
                             '  "curriculum_match": "fully_matched" | "partially_matched" | "not_matched",\n'
-                            '  "reasoning": "<brief explanation>"\n'
+                            '  "reasoning": "<brief explanation of image validity, staff presence, student count, and visible objects>"\n'
                             "}\n\n"
-                            "Be precise. Base your answer only on what is visible in the image."
+                            "Strict Rules:\n"
+                            "- is_classroom: Set false if the image is NOT a valid classroom/lab setting.\n"
+                            "- trainer_present & trainer_status: Set trainer_present=false unless an instructor is clearly teaching at front/whiteboard. NEVER count students as staff.\n"
+                            "- detected_infrastructure: List all visible equipment and objects.\n"
+                            "Base your answer strictly on what is visible in the image."
                         ),
                     },
                 ],

@@ -75,11 +75,31 @@ class ClassroomAnalysisPipeline:
         qwen_data = self._parse_qwen_response(qwen_raw, person_count)
 
         # ── Step 4: Merge YOLO + Qwen Results ────────────
-        trainer_status = qwen_data["trainer_status"]
-        student_count = qwen_data.get("estimated_student_count", max(0, person_count - 1))
-        engaged_count = qwen_data.get("engaged_students_count", int(student_count * 0.7))
-        detected_activity = qwen_data.get("detected_activity", "students_idle")
-        curriculum_match = qwen_data.get("curriculum_match", "not_matched")
+        is_classroom = qwen_data.get("is_classroom", True)
+        detected_activity = qwen_data.get(
+            "detected_activity",
+            "trainer_teaching" if person_count > 0 else "empty_classroom"
+        )
+        if detected_activity == "not_a_classroom":
+            is_classroom = False
+
+        # Staff vs Student separation logic:
+        # Respect Qwen's trainer_present and trainer_status. Do NOT default person_count > 0 to trainer teaching!
+        trainer_present = qwen_data.get("trainer_present", False)
+        trainer_status = qwen_data.get("trainer_status", "teaching" if trainer_present else "absent")
+
+        if not trainer_present or trainer_status == "absent":
+            trainer_status = "absent"
+            yolo_student_estimate = person_count
+        else:
+            yolo_student_estimate = max(0, person_count - 1)
+
+        qwen_student_estimate = qwen_data.get("estimated_student_count", yolo_student_estimate)
+        
+        # Take consensus estimate (maximum of YOLO bounding boxes and Qwen visual count)
+        student_count = max(yolo_student_estimate, qwen_student_estimate) if is_classroom else 0
+        engaged_count = min(student_count, qwen_data.get("engaged_students_count", int(student_count * 0.75)))
+        curriculum_match = qwen_data.get("curriculum_match", "fully_matched")
 
         # Merge infra from Qwen (if it detected more items)
         qwen_infra = qwen_data.get("detected_infrastructure", [])
@@ -98,6 +118,7 @@ class ClassroomAnalysisPipeline:
             registered_students=request.registered_students,
             present_students=student_count,
             curriculum_match=curriculum_match,
+            is_classroom=is_classroom,
         )
 
         # ── Step 6: Build Final Response ─────────────────
@@ -110,6 +131,7 @@ class ClassroomAnalysisPipeline:
             "analyzed_at": datetime.utcnow().isoformat(),
 
             # Detection Results
+            "is_classroom": is_classroom,
             "trainer_present": trainer_status != "absent",
             "trainer_status": trainer_status,
             "student_count": student_count,
@@ -155,13 +177,13 @@ class ClassroomAnalysisPipeline:
             logger.warning(f"Failed to parse Qwen JSON: {e}. Using fallback.")
 
         # Fallback defaults
-        student_count = max(0, fallback_person_count - 1)
         return {
-            "trainer_present": fallback_person_count > 0,
-            "trainer_status": "teaching" if fallback_person_count > 0 else "absent",
-            "estimated_student_count": student_count,
-            "engaged_students_count": int(student_count * 0.7),
-            "detected_activity": "trainer_teaching" if fallback_person_count > 0 else "empty_classroom",
+            "is_classroom": True,
+            "trainer_present": False,
+            "trainer_status": "absent",
+            "estimated_student_count": fallback_person_count,
+            "engaged_students_count": int(fallback_person_count * 0.7),
+            "detected_activity": "students_idle" if fallback_person_count > 0 else "empty_classroom",
             "detected_infrastructure": [],
             "curriculum_match": "partially_matched",
             "reasoning": raw[:500] if raw else "No response from model.",

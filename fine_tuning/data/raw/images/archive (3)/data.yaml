@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['Head']
+
+roboflow:
+  workspace: trisha-then
+  project: head-detection-cctv
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/trisha-then/head-detection-cctv/dataset/2

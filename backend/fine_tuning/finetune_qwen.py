@@ -222,26 +222,38 @@ def finetune(resume_from_checkpoint: Optional[str] = None):
         logger.error("Run: python fine_tuning/prepare_dataset.py first")
         return
 
-    # ── 4-bit Quantization Config ─────────────────────────────────
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_use_double_quant=True,
-    )
-
-    # ── Load Model ────────────────────────────────────────────────
+    # ── 4-bit Quantization Config & Model Loading ────────────────
     logger.info(f"Loading base model: {QWEN_MODEL_PATH}")
-    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        QWEN_MODEL_PATH,
-        quantization_config=bnb_config,
-        device_map="auto",
-        torch_dtype=torch.bfloat16,
-        trust_remote_code=True,
-    )
-
-    # Prepare for k-bit training (required before adding LoRA)
-    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
+    offload_dir = Path(__file__).resolve().parent / "offload"
+    offload_dir.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            bnb_4bit_use_double_quant=True,
+        )
+        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            QWEN_MODEL_PATH,
+            quantization_config=bnb_config,
+            device_map="auto" if torch.cuda.is_available() else "cpu",
+            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            low_cpu_mem_usage=True,
+            offload_folder=str(offload_dir),
+            trust_remote_code=True,
+        )
+        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
+    except (ImportError, Exception) as e:
+        logger.warning(f"⚠️ 4-bit quantization unavailable ({e}). Loading in low CPU memory mode...")
+        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            QWEN_MODEL_PATH,
+            device_map="auto" if torch.cuda.is_available() else "cpu",
+            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            low_cpu_mem_usage=True,
+            offload_folder=str(offload_dir),
+            trust_remote_code=True,
+        )
 
     # ── Add LoRA Adapters ─────────────────────────────────────────
     lora_config = get_lora_config()
@@ -325,7 +337,13 @@ def finetune(resume_from_checkpoint: Optional[str] = None):
 
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Fine-tune Qwen2.5-VL-7B on classroom data")
+    parser = argparse.ArgumentParser(description="Fine-tune Qwen2.5-VL on classroom data")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="Qwen/Qwen2.5-VL-7B-Instruct",
+        help="Base model to fine-tune (e.g., Qwen/Qwen2.5-VL-1.5B-Instruct for CPU/Low-RAM)",
+    )
     parser.add_argument(
         "--resume_from_checkpoint",
         type=str,
@@ -333,4 +351,6 @@ if __name__ == "__main__":
         help="Path to checkpoint directory to resume from",
     )
     args = parser.parse_args()
+    if args.model:
+        QWEN_MODEL_PATH = args.model
     finetune(resume_from_checkpoint=args.resume_from_checkpoint)

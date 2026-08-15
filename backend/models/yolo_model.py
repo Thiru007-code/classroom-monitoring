@@ -45,17 +45,10 @@ class YOLODetector:
             logger.warning("⚠️  ultralytics not installed. Run: pip install ultralytics")
             self._loaded = False
 
-    def detect(self, image: Image.Image, confidence_threshold: float = 0.4) -> Dict:
+    def detect(self, image: Image.Image, confidence_threshold: float = 0.18) -> Dict:
         """
         Run YOLO detection on a classroom image.
-
-        Returns:
-            {
-                "persons": [ {"bbox": [...], "conf": 0.9}, ... ],
-                "objects": [ {"label": "laptop", "conf": 0.8, "bbox": [...]}, ... ],
-                "person_count": 5,
-                "detected_labels": ["person", "laptop", "tv"]
-            }
+        Default confidence threshold set to 0.18 for optimal crowded classroom detection.
         """
         if not self._loaded:
             self.load()

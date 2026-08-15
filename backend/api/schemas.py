@@ -19,6 +19,7 @@ class ActivityType(str, Enum):
     assessment = "assessment"
     students_idle = "students_idle"
     empty_classroom = "empty_classroom"
+    not_a_classroom = "not_a_classroom"
 
 
 class TrainerStatus(str, Enum):
@@ -77,6 +78,7 @@ class DetectedObject(BaseModel):
 
 
 class DetectionResult(BaseModel):
+    is_classroom: bool = True
     total_persons: int
     trainer_status: TrainerStatus
     student_count: int
@@ -128,6 +130,7 @@ class AnalysisResponse(BaseModel):
     analyzed_at: datetime
 
     # Detection Results
+    is_classroom: bool = True
     trainer_present: bool
     trainer_status: TrainerStatus
     student_count: int

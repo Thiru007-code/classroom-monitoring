@@ -69,6 +69,7 @@ ACTIVITY_SCORES = {
     "assessment": 80,
     "students_idle": 40,
     "empty_classroom": 0,
+    "not_a_classroom": 0,
 }
 
 # ─────────────────────────────────────────────

@@ -12,7 +12,9 @@ import {
   Monitor, 
   BookOpen, 
   ShieldAlert,
-  Zap
+  Zap,
+  Maximize2,
+  X
 } from 'lucide-react';
 import { api } from '../api/client';
 import { QualityRadarChart } from '../components/QualityRadarChart';
@@ -43,6 +45,8 @@ export const AnalyzePage = () => {
     setResult,
     runAnalysis,
   } = useAnalysis();
+
+  const [expandedImage, setExpandedImage] = useState(null);
 
   // Form Metadata State
   const [formData, setFormData] = useState({
@@ -133,14 +137,22 @@ export const AnalyzePage = () => {
                 }`}
               >
                 {preview ? (
-                  <div className="relative group">
+                  <div className="relative group rounded-lg overflow-hidden border border-slate-700">
                     <img 
                       src={preview} 
                       alt="Classroom Preview" 
-                      className="max-h-64 mx-auto rounded-lg object-cover shadow-lg border border-slate-700" 
+                      onClick={() => setExpandedImage(preview)}
+                      className="max-h-64 mx-auto rounded-lg object-cover shadow-lg cursor-pointer hover:scale-105 transition-transform duration-300" 
                     />
-                    <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-                      <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow">
+                    <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition-opacity rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedImage(preview)}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-1.5 transition-all"
+                      >
+                        <Maximize2 className="w-4 h-4" /> View Big Size
+                      </button>
+                      <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow">
                         Change Image
                         <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                       </label>
@@ -447,6 +459,41 @@ export const AnalyzePage = () => {
           )}
         </div>
       </div>
+
+      {/* Fullscreen Big Size Image Modal */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-fadeIn"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div 
+            className="relative max-w-6xl max-h-[92vh] w-full flex flex-col items-center justify-center bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header bar */}
+            <div className="w-full flex items-center justify-between pb-3 mb-2 border-b border-slate-800">
+              <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                <Maximize2 className="w-4 h-4 text-indigo-400" /> Full High-Resolution Classroom Image View
+              </span>
+              <button 
+                onClick={() => setExpandedImage(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition-all border border-slate-700"
+              >
+                <X className="w-4 h-4" /> Close
+              </button>
+            </div>
+
+            {/* Image display */}
+            <div className="overflow-auto max-h-[82vh] w-full flex items-center justify-center rounded-xl bg-slate-950/60 p-2 border border-slate-800">
+              <img 
+                src={expandedImage} 
+                alt="Classroom High Resolution View" 
+                className="max-h-[78vh] max-w-full rounded-lg object-contain shadow-2xl" 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

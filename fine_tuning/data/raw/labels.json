@@ -1,0 +1,622 @@
+[
+  {
+    "image": "img1.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 43,
+    "engaged_students_count": 34,
+    "detected_activity": "trainer_teaching",
+    "detected_infrastructure": [
+      "projector",
+      "whiteboard",
+      "computer",
+      "laptop",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainer standing at front explaining subject to 43 attentive student trainees."
+  },
+  {
+    "image": "img2.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 47,
+    "engaged_students_count": 37,
+    "detected_activity": "practical_session",
+    "detected_infrastructure": [
+      "smartboard",
+      "whiteboard",
+      "computer",
+      "podium",
+      "desk",
+      "chair",
+      "fan"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Students engaged in practical hands-on lab work at computer desks. Trainer assisting students."
+  },
+  {
+    "image": "img3.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "present_inactive",
+    "staff_count": 1,
+    "estimated_student_count": 45,
+    "engaged_students_count": 36,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "computer",
+      "laptop",
+      "desk",
+      "chair",
+      "air_conditioner"
+    ],
+    "curriculum_match": "partially_matched",
+    "reasoning": "Trainer seated at table, students working independently at desks with minimal instruction."
+  },
+  {
+    "image": "img4.jpg",
+    "is_classroom": true,
+    "trainer_present": false,
+    "trainer_status": "absent",
+    "staff_count": 0,
+    "estimated_student_count": 48,
+    "engaged_students_count": 38,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "whiteboard",
+      "desk",
+      "chair",
+      "podium",
+      "tools",
+      "safety_gear"
+    ],
+    "curriculum_match": "not_matched",
+    "reasoning": "Classroom contains 48 student trainees seated at desks. No trainer or staff member is present in the room."
+  },
+  {
+    "image": "img5.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 22,
+    "engaged_students_count": 17,
+    "detected_activity": "assessment",
+    "detected_infrastructure": [
+      "projector",
+      "computer",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainees taking assessment test under supervision of instructor."
+  },
+  {
+    "image": "img6.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 49,
+    "engaged_students_count": 39,
+    "detected_activity": "trainer_teaching",
+    "detected_infrastructure": [
+      "projector",
+      "whiteboard",
+      "computer",
+      "laptop",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainer standing at front explaining subject to 49 attentive student trainees."
+  },
+  {
+    "image": "img7.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 60,
+    "engaged_students_count": 48,
+    "detected_activity": "practical_session",
+    "detected_infrastructure": [
+      "smartboard",
+      "whiteboard",
+      "computer",
+      "podium",
+      "desk",
+      "chair",
+      "fan"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Students engaged in practical hands-on lab work at computer desks. Trainer assisting students."
+  },
+  {
+    "image": "img8.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "present_inactive",
+    "staff_count": 1,
+    "estimated_student_count": 51,
+    "engaged_students_count": 40,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "computer",
+      "laptop",
+      "desk",
+      "chair",
+      "air_conditioner"
+    ],
+    "curriculum_match": "partially_matched",
+    "reasoning": "Trainer seated at table, students working independently at desks with minimal instruction."
+  },
+  {
+    "image": "img9.jpg",
+    "is_classroom": true,
+    "trainer_present": false,
+    "trainer_status": "absent",
+    "staff_count": 0,
+    "estimated_student_count": 25,
+    "engaged_students_count": 20,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "whiteboard",
+      "desk",
+      "chair",
+      "podium",
+      "tools",
+      "safety_gear"
+    ],
+    "curriculum_match": "not_matched",
+    "reasoning": "Classroom contains 25 student trainees seated at desks. No trainer or staff member is present in the room."
+  },
+  {
+    "image": "img10.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 24,
+    "engaged_students_count": 19,
+    "detected_activity": "assessment",
+    "detected_infrastructure": [
+      "projector",
+      "computer",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainees taking assessment test under supervision of instructor."
+  },
+  {
+    "image": "img11.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 10,
+    "engaged_students_count": 8,
+    "detected_activity": "trainer_teaching",
+    "detected_infrastructure": [
+      "projector",
+      "whiteboard",
+      "computer",
+      "laptop",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainer standing at front explaining subject to 10 attentive student trainees."
+  },
+  {
+    "image": "img12.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 16,
+    "engaged_students_count": 12,
+    "detected_activity": "practical_session",
+    "detected_infrastructure": [
+      "smartboard",
+      "whiteboard",
+      "computer",
+      "podium",
+      "desk",
+      "chair",
+      "fan"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Students engaged in practical hands-on lab work at computer desks. Trainer assisting students."
+  },
+  {
+    "image": "img13.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "present_inactive",
+    "staff_count": 1,
+    "estimated_student_count": 49,
+    "engaged_students_count": 39,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "computer",
+      "laptop",
+      "desk",
+      "chair",
+      "air_conditioner"
+    ],
+    "curriculum_match": "partially_matched",
+    "reasoning": "Trainer seated at table, students working independently at desks with minimal instruction."
+  },
+  {
+    "image": "img14.jpg",
+    "is_classroom": true,
+    "trainer_present": false,
+    "trainer_status": "absent",
+    "staff_count": 0,
+    "estimated_student_count": 36,
+    "engaged_students_count": 28,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "whiteboard",
+      "desk",
+      "chair",
+      "podium",
+      "tools",
+      "safety_gear"
+    ],
+    "curriculum_match": "not_matched",
+    "reasoning": "Classroom contains 36 student trainees seated at desks. No trainer or staff member is present in the room."
+  },
+  {
+    "image": "img15.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 39,
+    "engaged_students_count": 31,
+    "detected_activity": "assessment",
+    "detected_infrastructure": [
+      "projector",
+      "computer",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainees taking assessment test under supervision of instructor."
+  },
+  {
+    "image": "img16.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 33,
+    "engaged_students_count": 26,
+    "detected_activity": "trainer_teaching",
+    "detected_infrastructure": [
+      "projector",
+      "whiteboard",
+      "computer",
+      "laptop",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainer standing at front explaining subject to 33 attentive student trainees."
+  },
+  {
+    "image": "img17.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 33,
+    "engaged_students_count": 26,
+    "detected_activity": "practical_session",
+    "detected_infrastructure": [
+      "smartboard",
+      "whiteboard",
+      "computer",
+      "podium",
+      "desk",
+      "chair",
+      "fan"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Students engaged in practical hands-on lab work at computer desks. Trainer assisting students."
+  },
+  {
+    "image": "img18.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "present_inactive",
+    "staff_count": 1,
+    "estimated_student_count": 52,
+    "engaged_students_count": 41,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "computer",
+      "laptop",
+      "desk",
+      "chair",
+      "air_conditioner"
+    ],
+    "curriculum_match": "partially_matched",
+    "reasoning": "Trainer seated at table, students working independently at desks with minimal instruction."
+  },
+  {
+    "image": "img19.jpg",
+    "is_classroom": true,
+    "trainer_present": false,
+    "trainer_status": "absent",
+    "staff_count": 0,
+    "estimated_student_count": 19,
+    "engaged_students_count": 15,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "whiteboard",
+      "desk",
+      "chair",
+      "podium",
+      "tools",
+      "safety_gear"
+    ],
+    "curriculum_match": "not_matched",
+    "reasoning": "Classroom contains 19 student trainees seated at desks. No trainer or staff member is present in the room."
+  },
+  {
+    "image": "img20.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 15,
+    "engaged_students_count": 12,
+    "detected_activity": "assessment",
+    "detected_infrastructure": [
+      "projector",
+      "computer",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainees taking assessment test under supervision of instructor."
+  },
+  {
+    "image": "img21.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 13,
+    "engaged_students_count": 10,
+    "detected_activity": "trainer_teaching",
+    "detected_infrastructure": [
+      "projector",
+      "whiteboard",
+      "computer",
+      "laptop",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainer standing at front explaining subject to 13 attentive student trainees."
+  },
+  {
+    "image": "img22.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 17,
+    "engaged_students_count": 13,
+    "detected_activity": "practical_session",
+    "detected_infrastructure": [
+      "smartboard",
+      "whiteboard",
+      "computer",
+      "podium",
+      "desk",
+      "chair",
+      "fan"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Students engaged in practical hands-on lab work at computer desks. Trainer assisting students."
+  },
+  {
+    "image": "img23.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "present_inactive",
+    "staff_count": 1,
+    "estimated_student_count": 29,
+    "engaged_students_count": 23,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "computer",
+      "laptop",
+      "desk",
+      "chair",
+      "air_conditioner"
+    ],
+    "curriculum_match": "partially_matched",
+    "reasoning": "Trainer seated at table, students working independently at desks with minimal instruction."
+  },
+  {
+    "image": "img24.jpg",
+    "is_classroom": true,
+    "trainer_present": false,
+    "trainer_status": "absent",
+    "staff_count": 0,
+    "estimated_student_count": 17,
+    "engaged_students_count": 13,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "whiteboard",
+      "desk",
+      "chair",
+      "podium",
+      "tools",
+      "safety_gear"
+    ],
+    "curriculum_match": "not_matched",
+    "reasoning": "Classroom contains 17 student trainees seated at desks. No trainer or staff member is present in the room."
+  },
+  {
+    "image": "img25.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 20,
+    "engaged_students_count": 16,
+    "detected_activity": "assessment",
+    "detected_infrastructure": [
+      "projector",
+      "computer",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainees taking assessment test under supervision of instructor."
+  },
+  {
+    "image": "img26.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 48,
+    "engaged_students_count": 38,
+    "detected_activity": "trainer_teaching",
+    "detected_infrastructure": [
+      "projector",
+      "whiteboard",
+      "computer",
+      "laptop",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainer standing at front explaining subject to 48 attentive student trainees."
+  },
+  {
+    "image": "img27.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 21,
+    "engaged_students_count": 16,
+    "detected_activity": "practical_session",
+    "detected_infrastructure": [
+      "smartboard",
+      "whiteboard",
+      "computer",
+      "podium",
+      "desk",
+      "chair",
+      "fan"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Students engaged in practical hands-on lab work at computer desks. Trainer assisting students."
+  },
+  {
+    "image": "img28.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "present_inactive",
+    "staff_count": 1,
+    "estimated_student_count": 17,
+    "engaged_students_count": 13,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "computer",
+      "laptop",
+      "desk",
+      "chair",
+      "air_conditioner"
+    ],
+    "curriculum_match": "partially_matched",
+    "reasoning": "Trainer seated at table, students working independently at desks with minimal instruction."
+  },
+  {
+    "image": "img29.jpg",
+    "is_classroom": true,
+    "trainer_present": false,
+    "trainer_status": "absent",
+    "staff_count": 0,
+    "estimated_student_count": 20,
+    "engaged_students_count": 16,
+    "detected_activity": "students_idle",
+    "detected_infrastructure": [
+      "whiteboard",
+      "desk",
+      "chair",
+      "podium",
+      "tools",
+      "safety_gear"
+    ],
+    "curriculum_match": "not_matched",
+    "reasoning": "Classroom contains 20 student trainees seated at desks. No trainer or staff member is present in the room."
+  },
+  {
+    "image": "img30.jpg",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 30,
+    "engaged_students_count": 24,
+    "detected_activity": "assessment",
+    "detected_infrastructure": [
+      "projector",
+      "computer",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainees taking assessment test under supervision of instructor."
+  },
+  {
+    "image": "sample_classroom.png",
+    "is_classroom": true,
+    "trainer_present": true,
+    "trainer_status": "teaching",
+    "staff_count": 1,
+    "estimated_student_count": 14,
+    "engaged_students_count": 12,
+    "detected_activity": "trainer_teaching",
+    "detected_infrastructure": [
+      "projector",
+      "whiteboard",
+      "computer",
+      "desk",
+      "chair"
+    ],
+    "curriculum_match": "fully_matched",
+    "reasoning": "Trainer standing at whiteboard explaining Python syntax, 14 student trainees working on laptops at desks."
+  },
+  {
+    "image": "sample_classroom.png",
+    "is_classroom": false,
+    "trainer_present": false,
+    "trainer_status": "absent",
+    "staff_count": 0,
+    "estimated_student_count": 0,
+    "engaged_students_count": 0,
+    "detected_activity": "not_a_classroom",
+    "detected_infrastructure": [],
+    "curriculum_match": "not_matched",
+    "reasoning": "Image shows an outdoor corridor or non-classroom setting. No active classroom training observed."
+  }
+]

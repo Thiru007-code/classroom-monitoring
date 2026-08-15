@@ -1,0 +1,107 @@
+[
+  {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "image",
+            "image": "D:\\new volume e\\PROJECTS\\MINI_PROJECT\\fine_tuning\\data\\raw\\images\\sample_classroom.png"
+          },
+          {
+            "type": "text",
+            "text": "You are an AI classroom quality analyst for a skill development training program.\n\nAnalyze this image carefully and respond ONLY in this JSON format:\n\n{\n  \"is_classroom\": true/false,\n  \"trainer_present\": true/false,\n  \"trainer_status\": \"teaching\" | \"present_inactive\" | \"absent\",\n  \"staff_count\": <number>,\n  \"estimated_student_count\": <number>,\n  \"engaged_students_count\": <number>,\n  \"detected_activity\": \"practical_session\" | \"trainer_teaching\" | \"group_discussion\" | \"assessment\" | \"students_idle\" | \"empty_classroom\" | \"not_a_classroom\",\n  \"detected_infrastructure\": [\"projector\", \"whiteboard\", \"computer\", \"desk\", \"chair\"],\n  \"curriculum_match\": \"fully_matched\" | \"partially_matched\" | \"not_matched\",\n  \"reasoning\": \"<brief explanation of image validity, staff presence, student count, and visible objects>\"\n}\n\nStrict Rules:\n- is_classroom: Set false if the image is NOT a valid classroom/lab setting.\n- trainer_present & trainer_status: Set trainer_present=false unless an instructor is clearly teaching at front/whiteboard. NEVER count students as staff.\n- detected_infrastructure: List all visible equipment and objects.\nBase your answer strictly on what is visible in the image."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "{\n  \"is_classroom\": false,\n  \"trainer_present\": false,\n  \"trainer_status\": \"absent\",\n  \"staff_count\": 0,\n  \"estimated_student_count\": 0,\n  \"engaged_students_count\": 0,\n  \"detected_activity\": \"not_a_classroom\",\n  \"detected_infrastructure\": [],\n  \"curriculum_match\": \"not_matched\",\n  \"reasoning\": \"Image shows an outdoor corridor or non-classroom setting. No active classroom training observed.\"\n}"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "image",
+            "image": "D:\\new volume e\\PROJECTS\\MINI_PROJECT\\fine_tuning\\data\\raw\\images\\img9.jpg"
+          },
+          {
+            "type": "text",
+            "text": "You are an AI classroom quality analyst for a skill development training program.\n\nAnalyze this image carefully and respond ONLY in this JSON format:\n\n{\n  \"is_classroom\": true/false,\n  \"trainer_present\": true/false,\n  \"trainer_status\": \"teaching\" | \"present_inactive\" | \"absent\",\n  \"staff_count\": <number>,\n  \"estimated_student_count\": <number>,\n  \"engaged_students_count\": <number>,\n  \"detected_activity\": \"practical_session\" | \"trainer_teaching\" | \"group_discussion\" | \"assessment\" | \"students_idle\" | \"empty_classroom\" | \"not_a_classroom\",\n  \"detected_infrastructure\": [\"projector\", \"whiteboard\", \"computer\", \"desk\", \"chair\"],\n  \"curriculum_match\": \"fully_matched\" | \"partially_matched\" | \"not_matched\",\n  \"reasoning\": \"<brief explanation of image validity, staff presence, student count, and visible objects>\"\n}\n\nStrict Rules:\n- is_classroom: Set false if the image is NOT a valid classroom/lab setting.\n- trainer_present & trainer_status: Set trainer_present=false unless an instructor is clearly teaching at front/whiteboard. NEVER count students as staff.\n- detected_infrastructure: List all visible equipment and objects.\nBase your answer strictly on what is visible in the image."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "{\n  \"is_classroom\": true,\n  \"trainer_present\": false,\n  \"trainer_status\": \"absent\",\n  \"staff_count\": 0,\n  \"estimated_student_count\": 25,\n  \"engaged_students_count\": 20,\n  \"detected_activity\": \"students_idle\",\n  \"detected_infrastructure\": [\n    \"whiteboard\",\n    \"desk\",\n    \"chair\",\n    \"podium\",\n    \"tools\",\n    \"safety_gear\"\n  ],\n  \"curriculum_match\": \"not_matched\",\n  \"reasoning\": \"Classroom contains 25 student trainees seated at desks. No trainer or staff member is present in the room.\"\n}"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "image",
+            "image": "D:\\new volume e\\PROJECTS\\MINI_PROJECT\\fine_tuning\\data\\raw\\images\\img24.jpg"
+          },
+          {
+            "type": "text",
+            "text": "You are an AI classroom quality analyst for a skill development training program.\n\nAnalyze this image carefully and respond ONLY in this JSON format:\n\n{\n  \"is_classroom\": true/false,\n  \"trainer_present\": true/false,\n  \"trainer_status\": \"teaching\" | \"present_inactive\" | \"absent\",\n  \"staff_count\": <number>,\n  \"estimated_student_count\": <number>,\n  \"engaged_students_count\": <number>,\n  \"detected_activity\": \"practical_session\" | \"trainer_teaching\" | \"group_discussion\" | \"assessment\" | \"students_idle\" | \"empty_classroom\" | \"not_a_classroom\",\n  \"detected_infrastructure\": [\"projector\", \"whiteboard\", \"computer\", \"desk\", \"chair\"],\n  \"curriculum_match\": \"fully_matched\" | \"partially_matched\" | \"not_matched\",\n  \"reasoning\": \"<brief explanation of image validity, staff presence, student count, and visible objects>\"\n}\n\nStrict Rules:\n- is_classroom: Set false if the image is NOT a valid classroom/lab setting.\n- trainer_present & trainer_status: Set trainer_present=false unless an instructor is clearly teaching at front/whiteboard. NEVER count students as staff.\n- detected_infrastructure: List all visible equipment and objects.\nBase your answer strictly on what is visible in the image."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "{\n  \"is_classroom\": true,\n  \"trainer_present\": false,\n  \"trainer_status\": \"absent\",\n  \"staff_count\": 0,\n  \"estimated_student_count\": 17,\n  \"engaged_students_count\": 13,\n  \"detected_activity\": \"students_idle\",\n  \"detected_infrastructure\": [\n    \"whiteboard\",\n    \"desk\",\n    \"chair\",\n    \"podium\",\n    \"tools\",\n    \"safety_gear\"\n  ],\n  \"curriculum_match\": \"not_matched\",\n  \"reasoning\": \"Classroom contains 17 student trainees seated at desks. No trainer or staff member is present in the room.\"\n}"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "image",
+            "image": "D:\\new volume e\\PROJECTS\\MINI_PROJECT\\fine_tuning\\data\\raw\\images\\img1.jpg"
+          },
+          {
+            "type": "text",
+            "text": "You are an AI classroom quality analyst for a skill development training program.\n\nAnalyze this image carefully and respond ONLY in this JSON format:\n\n{\n  \"is_classroom\": true/false,\n  \"trainer_present\": true/false,\n  \"trainer_status\": \"teaching\" | \"present_inactive\" | \"absent\",\n  \"staff_count\": <number>,\n  \"estimated_student_count\": <number>,\n  \"engaged_students_count\": <number>,\n  \"detected_activity\": \"practical_session\" | \"trainer_teaching\" | \"group_discussion\" | \"assessment\" | \"students_idle\" | \"empty_classroom\" | \"not_a_classroom\",\n  \"detected_infrastructure\": [\"projector\", \"whiteboard\", \"computer\", \"desk\", \"chair\"],\n  \"curriculum_match\": \"fully_matched\" | \"partially_matched\" | \"not_matched\",\n  \"reasoning\": \"<brief explanation of image validity, staff presence, student count, and visible objects>\"\n}\n\nStrict Rules:\n- is_classroom: Set false if the image is NOT a valid classroom/lab setting.\n- trainer_present & trainer_status: Set trainer_present=false unless an instructor is clearly teaching at front/whiteboard. NEVER count students as staff.\n- detected_infrastructure: List all visible equipment and objects.\nBase your answer strictly on what is visible in the image."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "{\n  \"is_classroom\": true,\n  \"trainer_present\": true,\n  \"trainer_status\": \"teaching\",\n  \"staff_count\": 1,\n  \"estimated_student_count\": 43,\n  \"engaged_students_count\": 34,\n  \"detected_activity\": \"trainer_teaching\",\n  \"detected_infrastructure\": [\n    \"projector\",\n    \"whiteboard\",\n    \"computer\",\n    \"laptop\",\n    \"desk\",\n    \"chair\"\n  ],\n  \"curriculum_match\": \"fully_matched\",\n  \"reasoning\": \"Trainer standing at front explaining subject to 43 attentive student trainees.\"\n}"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "image",
+            "image": "D:\\new volume e\\PROJECTS\\MINI_PROJECT\\fine_tuning\\data\\raw\\images\\img8.jpg"
+          },
+          {
+            "type": "text",
+            "text": "You are an AI classroom quality analyst for a skill development training program.\n\nAnalyze this image carefully and respond ONLY in this JSON format:\n\n{\n  \"is_classroom\": true/false,\n  \"trainer_present\": true/false,\n  \"trainer_status\": \"teaching\" | \"present_inactive\" | \"absent\",\n  \"staff_count\": <number>,\n  \"estimated_student_count\": <number>,\n  \"engaged_students_count\": <number>,\n  \"detected_activity\": \"practical_session\" | \"trainer_teaching\" | \"group_discussion\" | \"assessment\" | \"students_idle\" | \"empty_classroom\" | \"not_a_classroom\",\n  \"detected_infrastructure\": [\"projector\", \"whiteboard\", \"computer\", \"desk\", \"chair\"],\n  \"curriculum_match\": \"fully_matched\" | \"partially_matched\" | \"not_matched\",\n  \"reasoning\": \"<brief explanation of image validity, staff presence, student count, and visible objects>\"\n}\n\nStrict Rules:\n- is_classroom: Set false if the image is NOT a valid classroom/lab setting.\n- trainer_present & trainer_status: Set trainer_present=false unless an instructor is clearly teaching at front/whiteboard. NEVER count students as staff.\n- detected_infrastructure: List all visible equipment and objects.\nBase your answer strictly on what is visible in the image."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "{\n  \"is_classroom\": true,\n  \"trainer_present\": true,\n  \"trainer_status\": \"present_inactive\",\n  \"staff_count\": 1,\n  \"estimated_student_count\": 51,\n  \"engaged_students_count\": 40,\n  \"detected_activity\": \"students_idle\",\n  \"detected_infrastructure\": [\n    \"computer\",\n    \"laptop\",\n    \"desk\",\n    \"chair\",\n    \"air_conditioner\"\n  ],\n  \"curriculum_match\": \"partially_matched\",\n  \"reasoning\": \"Trainer seated at table, students working independently at desks with minimal instruction.\"\n}"
+      }
+    ]
+  }
+]
