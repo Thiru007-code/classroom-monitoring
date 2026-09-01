@@ -121,7 +121,46 @@ class ClassroomAnalysisPipeline:
             is_classroom=is_classroom,
         )
 
-        # ── Step 6: Build Final Response ─────────────────
+        # ── Step 6: Build Pipeline Trace ─────────────────
+        pipeline_trace = [
+            {
+                "step": 1,
+                "name": "Image Preprocessing & Normalization",
+                "status": "completed",
+                "badge": f"{original_image.width}x{original_image.height} px",
+                "details": f"Loaded image input and normalized color RGB tensor for dual AI model processing."
+            },
+            {
+                "step": 2,
+                "name": "YOLOv8 Spatial Detection",
+                "status": "completed",
+                "badge": f"{person_count} Persons Detected",
+                "details": f"Scanned spatial bounding boxes. Identified labels: {', '.join(detected_labels[:6]) if detected_labels else 'person'}."
+            },
+            {
+                "step": 3,
+                "name": "Qwen2.5-VL Context & Pedagogy Analysis",
+                "status": "completed",
+                "badge": f"Trainer: {trainer_status.replace('_', ' ').capitalize()}",
+                "details": f"Activity: '{detected_activity.replace('_', ' ').capitalize()}' | Curriculum Match: '{curriculum_match.replace('_', ' ').capitalize()}'."
+            },
+            {
+                "step": 4,
+                "name": "Consensus & Infrastructure Fusion",
+                "status": "completed",
+                "badge": f"{sum(1 for v in infra_status.values() if v)}/{len(infra_status)} Infra Verified",
+                "details": f"Cross-referenced spatial detections with vision context. Final consensus attendance: {student_count} students."
+            },
+            {
+                "step": 5,
+                "name": "6-Factor Quality Scoring & Compliance Audit",
+                "status": "completed",
+                "badge": f"Score: {score_result['quality_score']}/100",
+                "details": f"Quality Index: '{score_result['quality_label']}'. Attendance Rate: {round(score_result['score_breakdown']['attendance'])}%."
+            }
+        ]
+
+        # ── Step 7: Build Final Response ─────────────────
         response = {
             "session_id": session_id,
             "institution_name": request.institution_name,
@@ -147,7 +186,8 @@ class ClassroomAnalysisPipeline:
             "quality_score": score_result["quality_score"],
             "quality_label": score_result["quality_label"],
 
-            # Alerts
+            # Pipeline Trace & Alerts
+            "pipeline_trace": pipeline_trace,
             "alerts": score_result["alerts"],
             "raw_description": qwen_data.get("reasoning", qwen_raw),
         }

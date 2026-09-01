@@ -17,7 +17,9 @@ from fastapi.responses import JSONResponse
 
 from backend.api.routes import router
 from backend.database.db import create_tables
+from backend.database.seed import seed_mock_data_if_empty
 from backend.models.qwen_model import QwenVLModel
+
 from backend.models.yolo_model import YOLODetector
 
 # ─────────────────────────────────────────────
@@ -46,9 +48,11 @@ async def lifespan(app: FastAPI):
     logger.info("   Model Path    : C:\\Users\\Thiruvelan C\\.ollama\\models")
     logger.info("=" * 60)
 
-    # Create database tables
+    # Create database tables & seed mock data if empty
     logger.info("📦 Initializing SQLite database...")
     create_tables()
+    seed_mock_data_if_empty()
+
 
     # Pre-load YOLO (fast, auto-downloads yolov8n.pt ~6MB)
     logger.info("🔍 Loading YOLOv8 detector...")

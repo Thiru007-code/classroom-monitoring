@@ -20,6 +20,7 @@ import { api } from '../api/client';
 import { QualityRadarChart } from '../components/QualityRadarChart';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { AnalysisStepVisualizer } from '../components/AnalysisStepVisualizer';
 
 import { useAnalysis } from '../context/AnalysisContext';
 
@@ -312,15 +313,7 @@ export const AnalyzePage = () => {
           )}
 
           {isAnalyzing && (
-            <div className="glass-card rounded-2xl p-12 border border-slate-800 text-center flex flex-col items-center justify-center min-h-[400px]">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
-                <Sparkles className="w-8 h-8 text-indigo-400 absolute inset-0 m-auto animate-pulse" />
-              </div>
-              <h3 className="text-lg font-bold text-white">AI Multimodal Processing</h3>
-              <p className="text-xs text-indigo-300 mt-2 font-mono">1. Running YOLOv8 person & object detector...</p>
-              <p className="text-xs text-slate-400 mt-1 font-mono">2. Evaluating visual context with Qwen2.5-VL...</p>
-            </div>
+            <AnalysisStepVisualizer isAnalyzing={true} />
           )}
 
           {result && (
@@ -353,6 +346,9 @@ export const AnalyzePage = () => {
                     <ScoreGauge score={result.quality_score ?? 0} label="Overall QS" />
                   </div>
                 </div>
+
+                {/* Step-by-Step AI Detection & Analysis Pipeline Trace */}
+                <AnalysisStepVisualizer isAnalyzing={false} result={result} />
 
                 {/* Radar Score Breakdown */}
                 <div className="glass-card rounded-2xl p-6 border border-slate-800">

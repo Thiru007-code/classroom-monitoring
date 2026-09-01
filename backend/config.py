@@ -7,6 +7,11 @@ Model Name:    qwen2.5vl:7b
 """
 
 import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DB_PATH = BASE_DIR / "classroom_monitoring.db"
+
 
 # ─────────────────────────────────────────────
 # Ollama Configuration
@@ -102,7 +107,8 @@ YOLO_CLASSES_OF_INTEREST = {
 # ─────────────────────────────────────────────
 # Database (PostgreSQL or SQLite fallback)
 # ─────────────────────────────────────────────
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./classroom_monitoring.db")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH.as_posix()}")
+
 
 # ─────────────────────────────────────────────
 # Fine-Tuning Paths
