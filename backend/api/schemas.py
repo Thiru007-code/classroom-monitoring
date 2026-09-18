@@ -136,6 +136,8 @@ class AnalysisResponse(BaseModel):
     student_count: int
     attendance_percentage: float
     detected_activities: List[str]
+    student_activities: Optional[Dict[str, int]] = None
+    activity_instances: Optional[List[Dict]] = None
     infrastructure_status: Dict[str, bool]  # {"projector": True, "whiteboard": False}
     engagement_score: float
     curriculum_match: CurriculumMatch

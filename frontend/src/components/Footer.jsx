@@ -11,7 +11,7 @@ export const Footer = () => {
         </div>
         <div className="flex items-center gap-4 text-xs">
           <span className="flex items-center gap-1 text-emerald-400">
-            <ShieldCheck className="w-3.5 h-3.5" /> Qwen2.5-VL & YOLOv8 Vision Pipeline
+            <ShieldCheck className="w-3.5 h-3.5" /> Qwen2.5-VL & YOLO26 Vision Pipeline
           </span>
           <span>v1.0.0</span>
         </div>

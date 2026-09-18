@@ -42,19 +42,12 @@ class ImagePreprocessor:
         if image.mode != "RGB":
             image = image.convert("RGB")
 
-        # Resize preserving aspect ratio
-        image.thumbnail(target_size, Image.LANCZOS)
+        # Resize preserving aspect ratio if larger than target_size
+        if image.width > target_size[0] or image.height > target_size[1]:
+            image.thumbnail(target_size, Image.LANCZOS)
 
-        # Pad to exact target size (letterbox)
-        padded = Image.new("RGB", target_size, (0, 0, 0))
-        offset = (
-            (target_size[0] - image.width) // 2,
-            (target_size[1] - image.height) // 2,
-        )
-        padded.paste(image, offset)
-
-        logger.debug(f"Preprocessed image: {padded.size}, mode: {padded.mode}")
-        return padded
+        logger.debug(f"Preprocessed image: {image.size}, mode: {image.mode}")
+        return image
 
     @staticmethod
     def load_from_bytes(image_bytes: bytes) -> Image.Image:

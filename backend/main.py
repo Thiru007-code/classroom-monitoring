@@ -55,7 +55,8 @@ async def lifespan(app: FastAPI):
 
 
     # Pre-load YOLO (fast, auto-downloads yolov8n.pt ~6MB)
-    logger.info("🔍 Loading YOLOv8 detector...")
+    logger.info("🔍 Loading YOLO26 detector...")
+
     yolo = YOLODetector.get_instance()
     yolo.load()
 

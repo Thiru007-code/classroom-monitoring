@@ -29,7 +29,7 @@ const DEFAULT_STEPS = [
   },
   {
     id: 2,
-    title: '2. YOLOv8 Spatial Object & Person Detection',
+    title: '2. YOLO26 Spatial Object & Person Detection',
     subtitle: 'Scanning classroom bounding boxes, counting students & detecting hardware',
     icon: Users,
     subtasks: [
@@ -126,7 +126,7 @@ export const AnalysisStepVisualizer = ({ isAnalyzing, result }) => {
       },
       {
         step: 2,
-        name: 'YOLOv8 Spatial Detection',
+        name: 'YOLO26 Spatial Detection',
         badge: `${result.student_count + (result.trainer_present ? 1 : 0)} Persons Detected`,
         details: `Scanned human bounding boxes & hardware items (${Object.keys(result.infrastructure_status || {}).join(', ') || 'whiteboard'}).`
       },
@@ -169,7 +169,7 @@ export const AnalysisStepVisualizer = ({ isAnalyzing, result }) => {
                 </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Inspect how YOLOv8 object detection & Qwen2.5-VL vision reasoning produced this score.
+                Inspect how YOLO26 object detection & Qwen2.5-VL vision reasoning produced this score.
               </p>
             </div>
           </div>
@@ -315,7 +315,7 @@ export const AnalysisStepVisualizer = ({ isAnalyzing, result }) => {
       <div className="pt-2 text-center">
         <p className="text-xs text-slate-400 flex items-center justify-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
-          <span>Multimodal Neural Fusion (YOLOv8 + Qwen2.5-VL) running in background...</span>
+          <span>Multimodal Neural Fusion (YOLO26 + Qwen2.5-VL) running in background...</span>
         </p>
       </div>
     </div>

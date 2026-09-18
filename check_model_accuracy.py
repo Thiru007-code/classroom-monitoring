@@ -22,7 +22,7 @@ from backend.api.schemas import AnalysisRequest, InfrastructureRequirement, Curr
 
 def evaluate_yolo(image_path: Path):
     print("=" * 60)
-    print("1. EVALUATING YOLOv8 OBJECT DETECTION MODEL")
+    print("1. EVALUATING YOLO26 OBJECT DETECTION MODEL")
     print("=" * 60)
     
     if not image_path.exists():
@@ -56,6 +56,16 @@ def evaluate_yolo(image_path: Path):
 
     print(f"🏷️ Unique Detected Labels: {detected_labels}")
 
+    # Fine-Tuned Activity & Behavior Detection Check
+    activity_counts = result.get("activity_counts", {})
+    activity_instances = result.get("activity_instances", [])
+    if activity_counts:
+        print(f"🎯 Fine-Tuned Student Behaviors Detected: {sum(activity_counts.values())} total")
+        for act, count in activity_counts.items():
+            print(f"   - {act}: {count} instance(s)")
+    else:
+        print("🎯 Fine-Tuned Student Behaviors: None detected or activity model loading.")
+
     # Infrastructure Mapping Check
     test_reqs = ["computer", "projector", "whiteboard", "internet"]
     mapped_infra = detector.map_yolo_to_infrastructure(detected_labels, test_reqs)
@@ -68,6 +78,8 @@ def evaluate_yolo(image_path: Path):
         "avg_person_conf": float(avg_person_conf) if persons else 0.0,
         "objects_count": len(objects),
         "detected_labels": detected_labels,
+        "activity_counts": activity_counts,
+        "activity_instances": activity_instances,
         "inference_ms": (t1 - t0)*1000
     }
 

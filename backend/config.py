@@ -23,13 +23,49 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 # Your downloaded model: qwen2.5vl:7b
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "classroom-qwen:latest")
 
-# Timeout in seconds for Ollama inference (7B model ~10–30s per image)
-OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))
+# Timeout in seconds for Ollama inference (7B model ~10–30s per image, up to 300s for CPU cold start)
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "300"))
 
 # ─────────────────────────────────────────────
-# YOLOv8 weights (auto-downloads yolov8n.pt ~6MB if not found)
+## YOLO26 weights (auto-downloads yolo26n.pt if not found)
 # ─────────────────────────────────────────────
-YOLO_WEIGHTS = os.getenv("YOLO_WEIGHTS", "yolov8n.pt")  # n=nano (fastest)
+YOLO_WEIGHTS = os.getenv("YOLO_WEIGHTS", str(BASE_DIR / "yolo26n.pt"))  # YOLO26 nano
+
+# Fine-tuned Classroom Activity Weights (8 behaviors: handrise, read, write, sleep, etc.)
+CLASSROOM_ACTIVITY_WEIGHTS = os.getenv(
+    "CLASSROOM_ACTIVITY_WEIGHTS",
+    str(BASE_DIR / "fine_tuning" / "output" / "classroom_activity_best.pt")
+)
+
+STUDENT_BEHAVIOR_WEIGHTS = {
+    # Active & Attentive Behaviors (Positive Weights)
+    "handrise": 1.0,
+    "raising_hand": 1.0,
+    "hand_raise": 1.0,
+    "write": 1.0,
+    "writing": 1.0,
+    "read": 0.9,
+    "reading": 0.9,
+    "look_forward": 0.85,
+    "looking_forward": 0.85,
+    "listening": 0.85,
+    "stand": 0.8,
+    "standing": 0.8,
+
+    # Distracted & Inattentive Behaviors (Penalized Weights)
+    "turn_head": 0.40,
+    "distracted": 0.40,
+    "not_listening": 0.40,
+    "looking_away": 0.40,
+    "using_device": 0.25,
+    "mobile_using": 0.25,
+    "phone_using": 0.25,
+    "mobile_phone": 0.25,
+    "sleep": 0.0,
+    "sleeping": 0.0,
+    "drowsy": 0.0,
+}
+
 
 # ─────────────────────────────────────────────
 # Quality Score Weights (must sum to 1.0)
@@ -89,8 +125,27 @@ CURRICULUM_SCORES = {
 # ─────────────────────────────────────────────
 # Image Settings
 # ─────────────────────────────────────────────
-IMAGE_SIZE = (448, 448)         # Resize target for Qwen VL input
-MAX_IMAGE_SIZE_MB = 10          # Reject images larger than this
+IMAGE_SIZE = (1024, 1024)       # High-detail resolution for Qwen VL multimodal input
+MAX_IMAGE_SIZE_MB = 15          # Reject images larger than this
+
+# ─────────────────────────────────────────────
+# Infrastructure Matching Synonyms
+# ─────────────────────────────────────────────
+INFRA_SYNONYMS = {
+    "computer": ["laptop", "desktop", "computer", "tv", "monitor", "screen", "pc", "workstation"],
+    "projector": ["tv", "monitor", "screen", "projector", "display"],
+    "screen": ["tv", "monitor", "screen", "display"],
+    "smartboard": ["tv", "monitor", "whiteboard", "smartboard", "screen", "display", "interactive board"],
+    "whiteboard": ["whiteboard", "board", "screen", "smartboard", "blackboard", "chalkboard"],
+    "internet": ["laptop", "cell phone", "computer", "internet", "wifi"],
+    "benches": ["chair", "chairs", "dining table", "desk", "desks", "benches", "bench", "table", "tables", "podium"],
+    "tables": ["dining table", "desk", "desks", "table", "tables", "podium"],
+    "benches tables": ["chair", "chairs", "dining table", "desk", "desks", "table", "tables", "benches", "bench", "podium", "seating", "furniture"],
+    "benches_tables": ["chair", "chairs", "dining table", "desk", "desks", "table", "tables", "benches", "bench", "podium", "seating", "furniture"],
+    "podium": ["podium", "desk", "table", "lectern", "stand", "console"],
+    "chart papers": ["paper", "book", "books", "chart", "poster", "notebook", "textbook"],
+    "chart_papers": ["paper", "book", "books", "chart", "poster", "notebook", "textbook"],
+}
 
 # ─────────────────────────────────────────────
 # YOLO Class Mappings (COCO dataset IDs)

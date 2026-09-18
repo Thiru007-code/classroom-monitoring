@@ -3,13 +3,14 @@ scoring.py — Classroom Quality Score (QS) computation engine
 Formula: QS = (0.25×TP) + (0.20×SE) + (0.20×CA) + (0.10×IN) + (0.15×AT) + (0.10×CC)
 """
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from backend.config import (
     QS_WEIGHTS,
     QS_BANDS,
     TRAINER_SCORES,
     ACTIVITY_SCORES,
     CURRICULUM_SCORES,
+    STUDENT_BEHAVIOR_WEIGHTS,
 )
 import logging
 
@@ -36,12 +37,40 @@ class QualityScorer:
     # Step 2: Student Engagement (SE)
     # ─────────────────────────────────────────────
     @staticmethod
-    def compute_student_engagement(total_students: int, engaged_students: int) -> float:
+    def compute_student_engagement(
+        total_students: int,
+        engaged_students: int,
+        activity_counts: Optional[Dict[str, int]] = None,
+    ) -> float:
         """
-        SE = (engaged_students / total_students) × 100
+        SE calculation:
+        Factoring in granular student activities (positive: looking forward, writing, reading, hand raising;
+        penalized: sleeping, using mobile devices, distracted / turning head / not listening).
         """
         if total_students <= 0:
             return 0.0
+
+        if activity_counts and sum(activity_counts.values()) > 0:
+            total_detected = sum(activity_counts.values())
+            weighted_sum = sum(
+                count * STUDENT_BEHAVIOR_WEIGHTS.get(str(act).lower().strip().replace(" ", "_"), 0.5)
+                for act, count in activity_counts.items()
+            )
+            activity_score = (weighted_sum / total_detected) * 100
+
+            # If detected behavior count matches or exceeds total students, use activity score directly
+            if total_detected >= total_students or engaged_students == 0:
+                score = activity_score
+            else:
+                # Blend with holistic count when only a subset of students has fine-grained bounding boxes
+                detected_ratio = min(1.0, total_detected / max(1, total_students))
+                holistic_score = (min(engaged_students, total_students) / total_students) * 100
+                score = (activity_score * detected_ratio) + (holistic_score * (1.0 - detected_ratio))
+
+            score = max(0.0, min(100.0, score))
+            logger.debug(f"Activity-based SE = {score:.2f} from {activity_counts}")
+            return round(score, 2)
+
         engaged = min(engaged_students, total_students)  # clamp
         score = (engaged / total_students) * 100
         logger.debug(f"SE = ({engaged}/{total_students}) × 100 = {score:.2f}")
@@ -155,8 +184,9 @@ class QualityScorer:
         cc: float,
         qs: float,
         trainer_status: str,
+        activity_counts: Optional[Dict[str, int]] = None,
     ) -> List[Dict[str, str]]:
-        """Generate contextual alerts based on scores."""
+        """Generate contextual alerts based on scores and detected student behaviors."""
         alerts = []
 
         if trainer_status == "absent":
@@ -181,6 +211,42 @@ class QualityScorer:
                 "severity": "warning",
                 "message": f"⚠️ Low student engagement: {se:.1f}%. Review teaching method."
             })
+
+        # Activity & disengagement specific alerts
+        if activity_counts:
+            sleep_cnt = (
+                activity_counts.get("sleep", 0)
+                + activity_counts.get("sleeping", 0)
+                + activity_counts.get("drowsy", 0)
+            )
+            phone_cnt = (
+                activity_counts.get("using_device", 0)
+                + activity_counts.get("mobile_using", 0)
+                + activity_counts.get("phone_using", 0)
+                + activity_counts.get("mobile_phone", 0)
+            )
+            distracted_cnt = (
+                activity_counts.get("turn_head", 0)
+                + activity_counts.get("distracted", 0)
+                + activity_counts.get("not_listening", 0)
+                + activity_counts.get("looking_away", 0)
+            )
+
+            if sleep_cnt > 0:
+                alerts.append({
+                    "severity": "critical" if sleep_cnt >= 3 else "warning",
+                    "message": f"💤 {sleep_cnt} student(s) detected sleeping or inactive during session."
+                })
+            if phone_cnt > 0:
+                alerts.append({
+                    "severity": "warning",
+                    "message": f"📱 {phone_cnt} student(s) detected using mobile phones or unauthorized devices."
+                })
+            if distracted_cnt > 0:
+                alerts.append({
+                    "severity": "info",
+                    "message": f"👀 {distracted_cnt} student(s) observed turning head away / distracted."
+                })
 
         if inf < 60:
             alerts.append({
@@ -227,6 +293,7 @@ class QualityScorer:
         present_students: int,
         curriculum_match: str,
         is_classroom: bool = True,
+        activity_counts: Optional[Dict[str, int]] = None,
     ) -> Dict:
         """
         Run all 6 scoring steps and return complete result.
@@ -260,14 +327,14 @@ class QualityScorer:
             }
 
         tp = self.compute_trainer_presence(trainer_status)
-        se = self.compute_student_engagement(total_students, engaged_students)
+        se = self.compute_student_engagement(total_students, engaged_students, activity_counts=activity_counts)
         ca = self.compute_classroom_activity(detected_activity)
         inf = self.compute_infrastructure(infra_status)
         at = self.compute_attendance(registered_students, present_students)
         cc = self.compute_curriculum_compliance(curriculum_match)
         qs, contributions = self.compute_quality_score(tp, se, ca, inf, at, cc)
         label = self.get_quality_label(qs)
-        alerts = self.generate_alerts(tp, se, ca, inf, at, cc, qs, trainer_status)
+        alerts = self.generate_alerts(tp, se, ca, inf, at, cc, qs, trainer_status, activity_counts=activity_counts)
 
         return {
             "score_breakdown": {

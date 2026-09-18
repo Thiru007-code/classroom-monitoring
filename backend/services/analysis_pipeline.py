@@ -15,6 +15,7 @@ from backend.models.yolo_model import YOLODetector
 from backend.models.scoring import QualityScorer
 from backend.services.image_preprocessor import ImagePreprocessor
 from backend.api.schemas import AnalysisRequest, AnalysisResponse
+from backend.config import INFRA_SYNONYMS
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,8 @@ class ClassroomAnalysisPipeline:
         yolo_result = self.yolo.detect(original_image)
         person_count = yolo_result["person_count"]
         detected_labels = yolo_result["detected_labels"]
+        activity_counts = yolo_result.get("activity_counts", {})
+        activity_instances = yolo_result.get("activity_instances", [])
 
         # Infrastructure check from YOLO
         required_items = request.infrastructure_requirements.items
@@ -84,28 +87,124 @@ class ClassroomAnalysisPipeline:
             is_classroom = False
 
         # Staff vs Student separation logic:
-        # Respect Qwen's trainer_present and trainer_status. Do NOT default person_count > 0 to trainer teaching!
         trainer_present = qwen_data.get("trainer_present", False)
         trainer_status = qwen_data.get("trainer_status", "teaching" if trainer_present else "absent")
 
         if not trainer_present or trainer_status == "absent":
             trainer_status = "absent"
+            trainer_present = False
             yolo_student_estimate = person_count
         else:
+            trainer_present = True
             yolo_student_estimate = max(0, person_count - 1)
 
         qwen_student_estimate = qwen_data.get("estimated_student_count", yolo_student_estimate)
         
-        # Take consensus estimate (maximum of YOLO bounding boxes and Qwen visual count)
-        student_count = max(yolo_student_estimate, qwen_student_estimate) if is_classroom else 0
-        engaged_count = min(student_count, qwen_data.get("engaged_students_count", int(student_count * 0.75)))
-        curriculum_match = qwen_data.get("curriculum_match", "fully_matched")
+        reasoning_text = (str(qwen_data.get("reasoning", "")) + " " + str(qwen_raw or "")).lower()
+        no_people_detected = (
+            (person_count == 0 and qwen_student_estimate == 0 and not trainer_present)
+            or ("unoccupied" in reasoning_text and person_count == 0)
+            or ("empty classroom with no visible" in reasoning_text and person_count == 0)
+        )
 
-        # Merge infra from Qwen (if it detected more items)
-        qwen_infra = qwen_data.get("detected_infrastructure", [])
+        if not is_classroom:
+            student_count = 0
+            trainer_present = False
+            trainer_status = "absent"
+            detected_activity = "not_a_classroom"
+        elif no_people_detected:
+            student_count = 0
+            trainer_present = False
+            trainer_status = "absent"
+            detected_activity = "empty_classroom"
+        else:
+            # Reconcile counts: in tiered lecture rooms or occluded camera views,
+            # YOLO detects front-row upper bodies while Qwen holistically perceives rows of students.
+            if qwen_student_estimate > 0 and yolo_student_estimate > 0:
+                student_count = max(yolo_student_estimate, qwen_student_estimate)
+            elif qwen_student_estimate > 0:
+                student_count = qwen_student_estimate
+            else:
+                student_count = yolo_student_estimate
+
+        # Enforce consistency: 0 students = 0 engagement and empty classroom activity
+        if student_count == 0:
+            engaged_count = 0
+            activity_counts = {}
+            if trainer_status == "absent":
+                detected_activity = "empty_classroom"
+        else:
+            engaged_count = min(
+                student_count,
+                qwen_data.get("engaged_students_count", int(student_count * 0.8))
+            )
+
+        if trainer_status == "absent" and detected_activity == "trainer_teaching":
+            detected_activity = "students_idle" if student_count > 0 else "empty_classroom"
+
+        curriculum_match = qwen_data.get(
+            "curriculum_match",
+            "fully_matched" if student_count > 0 else "not_matched"
+        )
+
+        # Merge infra from Qwen using synonyms and flexible keyword matching
+        qwen_infra = [str(i).lower().strip() for i in qwen_data.get("detected_infrastructure", [])]
         for item in required_items:
-            if item.lower() in [i.lower() for i in qwen_infra]:
+            item_raw = item.lower().strip()
+            item_space = item_raw.replace("_", " ")
+            item_underscore = item_raw.replace(" ", "_")
+            check_variants = {item_raw, item_space, item_underscore}
+
+            synonyms = set()
+            for v in check_variants:
+                synonyms.update(INFRA_SYNONYMS.get(v, []))
+            synonyms.update(check_variants)
+
+            matched = (
+                any(syn in qwen_infra for syn in synonyms)
+                or any(v in qi for qi in qwen_infra for v in check_variants)
+                or any(qi in v for qi in qwen_infra for v in check_variants)
+                or any(any(syn in qi or qi in syn for syn in synonyms) for qi in qwen_infra)
+            )
+            if matched:
                 infra_status[item] = True
+
+        # Reconcile & Merge Fine-Grained Student Activities (YOLO + Qwen Vision)
+        qwen_behaviors = qwen_data.get("student_behaviors", {})
+        if student_count > 0 and isinstance(qwen_behaviors, dict):
+            for raw_k, v in qwen_behaviors.items():
+                try:
+                    cnt = int(v)
+                except (ValueError, TypeError):
+                    continue
+                if cnt <= 0:
+                    continue
+                k = str(raw_k).lower().strip().replace(" ", "_")
+                # Map to standardized behavior keys
+                if "sleep" in k or "drowsy" in k:
+                    std_k = "sleep"
+                elif "device" in k or "phone" in k or "mobile" in k:
+                    std_k = "using_device"
+                elif "distract" in k or "turn" in k or "look_away" in k or "listening" in k:
+                    std_k = "turn_head"
+                elif "hand" in k:
+                    std_k = "handrise"
+                elif "write" in k or "note" in k:
+                    std_k = "write"
+                elif "read" in k or "book" in k:
+                    std_k = "read"
+                elif "stand" in k:
+                    std_k = "stand"
+                elif "forward" in k:
+                    std_k = "look_forward"
+                else:
+                    std_k = k
+
+                if std_k not in activity_counts or activity_counts[std_k] == 0:
+                    activity_counts[std_k] = cnt
+                elif std_k in ["sleep", "using_device", "turn_head"]:
+                    # Never suppress detected negative behaviors if either model observed them
+                    activity_counts[std_k] = max(activity_counts[std_k], cnt)
 
         # ── Step 5: Quality Scoring ──────────────────────
         logger.info(f"[{session_id}] Step 5: Computing Quality Score...")
@@ -119,6 +218,7 @@ class ClassroomAnalysisPipeline:
             present_students=student_count,
             curriculum_match=curriculum_match,
             is_classroom=is_classroom,
+            activity_counts=activity_counts,
         )
 
         # ── Step 6: Build Pipeline Trace ─────────────────
@@ -132,10 +232,10 @@ class ClassroomAnalysisPipeline:
             },
             {
                 "step": 2,
-                "name": "YOLOv8 Spatial Detection",
+                "name": "YOLO26 Spatial & Activity Detection",
                 "status": "completed",
-                "badge": f"{person_count} Persons Detected",
-                "details": f"Scanned spatial bounding boxes. Identified labels: {', '.join(detected_labels[:6]) if detected_labels else 'person'}."
+                "badge": f"{person_count} Persons" + (f" | {sum(activity_counts.values())} Behaviors" if activity_counts else ""),
+                "details": f"Scanned spatial bounding boxes. Identified labels: {', '.join(detected_labels[:6]) if detected_labels else 'person'}." + (f" Behaviors: {', '.join(f'{k}:{v}' for k, v in activity_counts.items())}." if activity_counts else ""),
             },
             {
                 "step": 3,
@@ -176,6 +276,8 @@ class ClassroomAnalysisPipeline:
             "student_count": student_count,
             "attendance_percentage": score_result["score_breakdown"]["attendance"],
             "detected_activities": [detected_activity],
+            "student_activities": activity_counts,
+            "activity_instances": activity_instances,
             "infrastructure_status": infra_status,
             "engagement_score": score_result["score_breakdown"]["student_engagement"],
             "curriculum_match": curriculum_match,
@@ -204,27 +306,43 @@ class ClassroomAnalysisPipeline:
         Extract structured JSON from Qwen's response.
         Falls back to safe defaults if parsing fails.
         """
+        raw_lower = (raw or "").lower()
+        no_people_mentioned = (
+            "no visible" in raw_lower
+            or "no students" in raw_lower
+            or "no trainer" in raw_lower
+            or "empty classroom" in raw_lower
+        )
+
         # Try to find JSON block in response
         try:
-            # Find JSON between { }
             start = raw.find("{")
             end = raw.rfind("}") + 1
             if start != -1 and end > start:
                 json_str = raw[start:end]
                 data = json.loads(json_str)
+                # If model returned text reasoning stating no people, honor it over hallucinated numbers
+                reasoning = (data.get("reasoning") or "").lower()
+                if ("no visible" in reasoning and ("student" in reasoning or "trainer" in reasoning)) or (no_people_mentioned and fallback_person_count == 0):
+                    data["estimated_student_count"] = 0
+                    data["engaged_students_count"] = 0
+                    data["trainer_present"] = False
+                    data["trainer_status"] = "absent"
+                    data["detected_activity"] = "empty_classroom"
                 return data
         except (json.JSONDecodeError, ValueError) as e:
             logger.warning(f"Failed to parse Qwen JSON: {e}. Using fallback.")
 
         # Fallback defaults
+        student_fallback = 0 if (fallback_person_count == 0 or no_people_mentioned) else fallback_person_count
         return {
             "is_classroom": True,
             "trainer_present": False,
             "trainer_status": "absent",
-            "estimated_student_count": fallback_person_count,
-            "engaged_students_count": int(fallback_person_count * 0.7),
-            "detected_activity": "students_idle" if fallback_person_count > 0 else "empty_classroom",
+            "estimated_student_count": student_fallback,
+            "engaged_students_count": int(student_fallback * 0.7),
+            "detected_activity": "students_idle" if student_fallback > 0 else "empty_classroom",
             "detected_infrastructure": [],
-            "curriculum_match": "partially_matched",
+            "curriculum_match": "not_matched" if student_fallback == 0 else "partially_matched",
             "reasoning": raw[:500] if raw else "No response from model.",
         }

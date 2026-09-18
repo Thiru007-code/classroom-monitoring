@@ -14,7 +14,15 @@ import {
   ShieldAlert,
   Zap,
   Maximize2,
-  X
+  X,
+  Activity,
+  Eye,
+  Edit3,
+  AlertTriangle,
+  Smartphone,
+  Moon,
+  HelpCircle,
+  Info
 } from 'lucide-react';
 import { api } from '../api/client';
 import { QualityRadarChart } from '../components/QualityRadarChart';
@@ -23,6 +31,113 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AnalysisStepVisualizer } from '../components/AnalysisStepVisualizer';
 
 import { useAnalysis } from '../context/AnalysisContext';
+
+const BEHAVIOR_META = {
+  look_forward: {
+    label: 'Looking Forward',
+    desc: 'Attentive Listening',
+    weight: '85% Engaged',
+    icon: Eye,
+    color: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/30',
+    isPositive: true,
+  },
+  looking_forward: {
+    label: 'Looking Forward',
+    desc: 'Attentive Listening',
+    weight: '85% Engaged',
+    icon: Eye,
+    color: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/30',
+    isPositive: true,
+  },
+  handrise: {
+    label: 'Hand Raising',
+    desc: 'Active Participation',
+    weight: '100% Engaged',
+    icon: HelpCircle,
+    color: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
+    isPositive: true,
+  },
+  write: {
+    label: 'Writing Notes',
+    desc: 'Active Note Taking',
+    weight: '100% Engaged',
+    icon: Edit3,
+    color: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
+    isPositive: true,
+  },
+  read: {
+    label: 'Reading Material',
+    desc: 'Studying Courseware',
+    weight: '90% Engaged',
+    icon: BookOpen,
+    color: 'text-sky-300 bg-sky-500/10 border-sky-500/30',
+    isPositive: true,
+  },
+  stand: {
+    label: 'Standing',
+    desc: 'Presenting / Responding',
+    weight: '80% Engaged',
+    icon: Users,
+    color: 'text-purple-300 bg-purple-500/10 border-purple-500/30',
+    isPositive: true,
+  },
+  turn_head: {
+    label: 'Distracted / Not Listening',
+    desc: 'Looking Away / Talking',
+    weight: '40% Engaged (Penalized)',
+    icon: AlertTriangle,
+    color: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
+    isPositive: false,
+  },
+  distracted: {
+    label: 'Distracted / Not Listening',
+    desc: 'Looking Away from Board',
+    weight: '40% Engaged (Penalized)',
+    icon: AlertTriangle,
+    color: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
+    isPositive: false,
+  },
+  not_listening: {
+    label: 'Not Listening',
+    desc: 'Disengaged from Session',
+    weight: '40% Engaged (Penalized)',
+    icon: AlertTriangle,
+    color: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
+    isPositive: false,
+  },
+  using_device: {
+    label: 'Mobile / Device Use',
+    desc: 'Phone Distraction',
+    weight: '25% Engaged (Penalized)',
+    icon: Smartphone,
+    color: 'text-rose-300 bg-rose-500/10 border-rose-500/30',
+    isPositive: false,
+  },
+  mobile_using: {
+    label: 'Mobile / Device Use',
+    desc: 'Phone Distraction',
+    weight: '25% Engaged (Penalized)',
+    icon: Smartphone,
+    color: 'text-rose-300 bg-rose-500/10 border-rose-500/30',
+    isPositive: false,
+  },
+  sleep: {
+    label: 'Sleeping / Drowsy',
+    desc: 'Head on Desk / Inactive',
+    weight: '0% Engaged (Penalty)',
+    icon: Moon,
+    color: 'text-rose-400 bg-rose-500/15 border-rose-500/40',
+    isPositive: false,
+  },
+  sleeping: {
+    label: 'Sleeping / Drowsy',
+    desc: 'Head on Desk / Inactive',
+    weight: '0% Engaged (Penalty)',
+    icon: Moon,
+    color: 'text-rose-400 bg-rose-500/15 border-rose-500/40',
+    isPositive: false,
+  },
+};
 
 const DEFAULT_INFRASTRUCTURE = [
   'whiteboard',
@@ -120,7 +235,7 @@ export const AnalyzePage = () => {
       <div>
         <h1 className="text-3xl font-black text-white tracking-tight">Classroom AI Vision Inspection</h1>
         <p className="mt-1 text-slate-400 text-sm">
-          Upload a classroom photo for dual YOLOv8 object detection & Qwen2.5-VL quality assessment.
+          Upload a classroom photo for dual YOLO26 object detection & Qwen2.5-VL quality assessment.
         </p>
       </div>
 
@@ -275,7 +390,7 @@ export const AnalyzePage = () => {
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin text-white" />
-                    <span>Running Qwen2.5-VL & YOLOv8 Analysis...</span>
+                    <span>Running Qwen2.5-VL & YOLO26 Analysis...</span>
                   </>
                 ) : (
                   <>
@@ -360,7 +475,7 @@ export const AnalyzePage = () => {
                 </div>
 
                 {/* Detections Summary Grid */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="glass-card rounded-xl p-4 border border-slate-800">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase">
                       <Users className="w-4 h-4 text-indigo-400" /> Attendance & Count
@@ -376,6 +491,35 @@ export const AnalyzePage = () => {
                     </div>
                     <div className="mt-2 text-sm font-bold text-emerald-400 capitalize">
                       {String(result.trainer_status || 'Unknown').replace('_', ' ')}
+                    </div>
+                  </div>
+
+                  <div className="glass-card rounded-xl p-4 border border-slate-800">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase">
+                      <Zap className="w-4 h-4 text-amber-400" /> Student Engagement
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="text-xl font-bold text-white">
+                        {Math.round(Number(result.engagement_score || 0))}%
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        (result.engagement_score || 0) >= 75
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : (result.engagement_score || 0) >= 50
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-rose-500/20 text-rose-400'
+                      }`}>
+                        {(result.engagement_score || 0) >= 75 ? 'Attentive' : (result.engagement_score || 0) >= 50 ? 'Moderate' : 'Low'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="glass-card rounded-xl p-4 border border-slate-800">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase">
+                      <Layers className="w-4 h-4 text-cyan-400" /> Classroom Mode
+                    </div>
+                    <div className="mt-2 text-sm font-bold text-white capitalize truncate">
+                      {String(result.detected_activities?.[0] || 'In Session').replace('_', ' ')}
                     </div>
                   </div>
                 </div>
@@ -407,6 +551,146 @@ export const AnalyzePage = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Fine-Tuned Student Activity & Behavior Detection */}
+                {result.student_activities && Object.keys(result.student_activities).length > 0 && (() => {
+                  const acts = result.student_activities;
+                  const sleepCount = (acts.sleep || 0) + (acts.sleeping || 0);
+                  const phoneCount = (acts.using_device || 0) + (acts.mobile_using || 0);
+                  const distractCount = (acts.turn_head || 0) + (acts.distracted || 0) + (acts.not_listening || 0);
+                  const totalTracked = Object.values(acts).reduce((a, b) => a + b, 0);
+
+                  return (
+                    <div className="glass-card rounded-2xl p-6 border border-slate-800 animate-fadeIn space-y-4">
+                      {/* Section Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-5 h-5 text-violet-400" />
+                          <div>
+                            <h3 className="text-sm font-bold text-white">
+                              Student Activity & Behavior Detection
+                            </h3>
+                            <p className="text-[11px] text-slate-400">
+                              Granular behavior analysis driving the Student Engagement Score (20% QS factor)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono text-violet-300 bg-violet-500/20 px-2.5 py-1 rounded-full border border-violet-500/30">
+                            {totalTracked} Behaviors Tracked
+                          </span>
+                          <span className="text-[11px] font-mono font-bold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                            SE Score: {Math.round(Number(result.engagement_score || 0))}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Calculation Context Banner */}
+                      <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs text-slate-300 flex items-start gap-2.5">
+                        <Info className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
+                        <div className="leading-relaxed text-[11px]">
+                          <strong className="text-white">Engagement Calculation: </strong>
+                          Attentive activities (<span className="text-indigo-300">Looking Forward</span>, <span className="text-cyan-300">Writing Notes</span>, <span className="text-sky-300">Reading</span>, <span className="text-emerald-300">Hand Raising</span>) yield positive weights, while disengagement (<span className="text-rose-400">Sleeping</span>, <span className="text-amber-400">Mobile Phone Use</span>, <span className="text-amber-300">Distracted / Not Listening</span>) applies direct penalties to the Student Engagement score.
+                        </div>
+                      </div>
+
+                      {/* Detected Behavior Cards Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {Object.entries(acts).map(([act, count]) => {
+                          const meta = BEHAVIOR_META[act] || {
+                            label: act.replace('_', ' '),
+                            desc: 'Detected Action',
+                            weight: 'Active',
+                            icon: Activity,
+                            color: 'text-slate-300 bg-slate-800/30 border-slate-700/40',
+                            isPositive: true,
+                          };
+                          const IconComponent = meta.icon;
+
+                          return (
+                            <div
+                              key={act}
+                              className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${meta.color}`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <div className="text-xs uppercase tracking-wider font-bold">
+                                    {meta.label}
+                                  </div>
+                                  <div className="text-[10px] opacity-75 font-normal">
+                                    {meta.desc}
+                                  </div>
+                                </div>
+                                <div className="p-1.5 rounded-lg bg-black/20">
+                                  <IconComponent className="w-4 h-4" />
+                                </div>
+                              </div>
+
+                              <div className="mt-3 pt-2 border-t border-white/10 flex items-baseline justify-between">
+                                <div className="text-xl font-black text-white flex items-baseline gap-1">
+                                  {count} <span className="text-[11px] font-normal opacity-70">students</span>
+                                </div>
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/30 font-semibold">
+                                  {meta.weight}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Disengagement & Distraction Compliance Audit Bar */}
+                      <div className="pt-2">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Disengagement & Distraction Audit
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                          {/* Sleeping */}
+                          <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                            sleepCount > 0
+                              ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+                              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                          }`}>
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <Moon className="w-3.5 h-3.5 flex-shrink-0" /> Sleeping / Inactive:
+                            </span>
+                            <span className="font-bold font-mono">
+                              {sleepCount > 0 ? `⚠️ ${sleepCount} Sleeping` : '0 ✅ (Clean)'}
+                            </span>
+                          </div>
+
+                          {/* Mobile Use */}
+                          <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                            phoneCount > 0
+                              ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+                              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                          }`}>
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <Smartphone className="w-3.5 h-3.5 flex-shrink-0" /> Mobile / Device Use:
+                            </span>
+                            <span className="font-bold font-mono">
+                              {phoneCount > 0 ? `⚠️ ${phoneCount} Using Device` : '0 ✅ (Clean)'}
+                            </span>
+                          </div>
+
+                          {/* Distracted / Not Listening */}
+                          <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                            distractCount > 0
+                              ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                          }`}>
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Distracted / Not Listening:
+                            </span>
+                            <span className="font-bold font-mono">
+                              {distractCount > 0 ? `⚠️ ${distractCount} Distracted` : '0 ✅ (Clean)'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Raw AI Reasoning Description */}
                 {result.raw_description && (

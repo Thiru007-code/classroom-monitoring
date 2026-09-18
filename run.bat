@@ -4,7 +4,7 @@ title Classroom Quality Monitoring System Launcher
 
 echo ============================================================
 echo   Classroom Quality Monitoring System
-echo   Starting Backend (FastAPI + YOLOv8 + Qwen2.5-VL) and Frontend
+echo   Starting Backend (FastAPI + YOLO26 + Qwen2.5-VL) and Frontend
 echo ============================================================
 echo.
 

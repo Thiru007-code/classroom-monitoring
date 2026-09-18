@@ -94,8 +94,10 @@ class QwenVLModel:
     @staticmethod
     def _image_to_base64(image: Image.Image) -> str:
         """Convert PIL Image to base64 string for Ollama API."""
+        if image.mode != "RGB":
+            image = image.convert("RGB")
         buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=90)
+        image.save(buffer, format="JPEG", quality=92)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     def analyze_classroom(self, image: Image.Image, prompt: str) -> str:
@@ -159,46 +161,79 @@ class QwenVLModel:
         infrastructure_required: list,
     ) -> str:
         """
-        Generate a structured prompt for classroom analysis.
-        Designed to produce reliable JSON output from Qwen2.5-VL with non-classroom validation
-        and strict staff vs student distinction rules.
+        Generate an objective prompt for classroom analysis.
+        Provides clear, unbiased guidance for detecting teachers at lecterns/podiums,
+        students across tiered rows, and classroom infrastructure.
         """
         infra_list = ", ".join(infrastructure_required)
-        return f"""You are an AI classroom quality analyst for a skill development training program.
+        return f"""You are an AI classroom quality analyst for a vocational and skill development training program.
 
 Course: {course_name}
 Job Role: {job_role}
 Planned Activity Today: {curriculum_planned}
 Required Infrastructure: {infra_list}
 
-Analyze this image carefully. Respond ONLY with valid JSON in exactly this format (no extra text before or after):
-
+Analyze this classroom image carefully. Provide your evaluation in valid JSON format:
 {{
   "is_classroom": true,
   "trainer_present": true,
   "trainer_status": "teaching",
   "staff_count": 1,
-  "estimated_student_count": 25,
-  "engaged_students_count": 20,
+  "estimated_student_count": 30,
+  "engaged_students_count": 25,
   "detected_activity": "trainer_teaching",
-  "detected_infrastructure": ["projector", "whiteboard", "computer", "desk", "chair"],
+  "detected_infrastructure": ["podium", "desk", "chair"],
   "curriculum_match": "fully_matched",
-  "reasoning": "Brief explanation of image validity, staff presence, student count, and visible objects."
+  "student_behaviors": {{
+    "look_forward": 20,
+    "write": 3,
+    "read": 2,
+    "handrise": 0,
+    "turn_head": 2,
+    "using_device": 1,
+    "sleep": 0
+  }},
+  "reasoning": "Detailed visual description of trainer location, student count across rows, activities, and equipment."
 }}
 
-Strict Rules:
-- is_classroom: Set false if the image does NOT show a classroom, vocational workshop, computer lab, or training institute (e.g. outdoors, living room, office, hallway, street, blank image).
-- trainer_present & trainer_status: Set trainer_present=false and trainer_status="absent" unless a person is clearly conducting instruction/presenting/writing at board at front of room. NEVER classify a student as trainer/staff.
-- trainer_status must be one of: "teaching", "present_inactive", "absent"
-- detected_activity must be one of: "practical_session", "trainer_teaching", "group_discussion", "assessment", "students_idle", "empty_classroom", "not_a_classroom"
-- curriculum_match must be one of: "fully_matched", "partially_matched", "not_matched"
-- detected_infrastructure: list all visible equipment and objects (projector, whiteboard, smartboard, computer, laptop, desk, chair, podium, fan, tools, safety_gear).
-- Base ALL answers strictly on what is visible in the image.
-
-Output ONLY the JSON object, nothing else."""
+Evaluation Guidelines:
+- is_classroom: Set true for lecture halls, classrooms, training labs, or workshops. Set false only if non-educational (e.g. outdoors, living room, street).
+- Trainer Detection:
+  * Check the front of the room, lectern, podium, desk, or board. A person standing in front facing students or lecturing is the instructor: trainer_present=true, trainer_status="teaching".
+  * If an instructor is in the room but sitting passively or inactive: trainer_present=true, trainer_status="present_inactive".
+  * If no instructor is present: trainer_present=false, trainer_status="absent".
+- Student Count:
+  * Carefully count or estimate all visible students seated in chairs, desks, or tiered auditorium rows.
+  * If the room is completely unoccupied with 0 people, set estimated_student_count=0, engaged_students_count=0, trainer_present=false, trainer_status="absent", detected_activity="empty_classroom".
+- Student Engagement & Specific Behaviors:
+  * In "student_behaviors", estimate the number of students observed in each state:
+    - look_forward: attentive listening, watching the trainer/screen/board
+    - write: writing notes or doing coursework
+    - read: reading book or monitor
+    - handrise: raising hand to ask or answer questions
+    - turn_head: looking away from instruction, talking with neighbor, distracted, or not listening
+    - using_device: holding/looking down at smartphone or unapproved device
+    - sleep: resting head down on desk, sleeping, or drowsy
+  * engaged_students_count: total students actively paying attention or working.
+- Detected Activity: Choose one of:
+  * "trainer_teaching": teacher presenting, lecturing, or addressing students.
+  * "practical_session": students actively working on laptops, computers, or lab equipment.
+  * "group_discussion": students collaborating in teams.
+  * "assessment": students taking a formal test/exam.
+  * "students_idle": students present but disengaged or unattended.
+  * "empty_classroom": completely empty room with 0 students and 0 staff.
+  * "not_a_classroom": non-educational scene.
+- Detected Infrastructure: List visible items (e.g. podium, whiteboard, projector, screen, computer, laptop, desk, chair, benches).
+- Curriculum Match: "fully_matched", "partially_matched", or "not_matched".
+- Output ONLY the valid JSON object, nothing else."""
 
     def check_ollama_running(self) -> bool:
         """Quick check if Ollama is reachable."""
+        try:
+            resp = httpx.get(f"{self.base_url}/api/tags", timeout=5)
+            return resp.status_code == 200
+        except Exception:
+            return False
         try:
             resp = httpx.get(f"{self.base_url}/api/tags", timeout=5)
             return resp.status_code == 200

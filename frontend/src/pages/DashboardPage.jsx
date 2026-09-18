@@ -121,7 +121,7 @@ export const DashboardPage = () => {
               Classroom Monitoring Dashboard
             </h1>
             <p className="mt-2 text-slate-400 max-w-2xl text-sm sm:text-base">
-              Automated computer vision quality assessment for Skill Development Training Centers using YOLOv8 & Qwen-2.5VL AI models.
+              Automated computer vision quality assessment for Skill Development Training Centers using YOLO26 & Qwen-2.5VL AI models.
             </p>
           </div>
           <Link

@@ -1,0 +1,14 @@
+path: "D:/new volume e/PROJECTS/MINI_PROJECT/fine_tuning/data/classroom_activities"
+train: train/images
+val: val/images
+
+nc: 8
+names:
+  0: handrise
+  1: look_forward
+  2: read
+  3: sleep
+  4: stand
+  5: turn_head
+  6: using_device
+  7: write

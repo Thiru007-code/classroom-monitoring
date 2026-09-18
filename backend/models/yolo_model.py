@@ -1,5 +1,5 @@
 """
-yolo_model.py — YOLOv8 object and person detection for classroom images
+yolo_model.py — YOLO26 object and person detection for classroom images
 """
 
 import torch
@@ -7,7 +7,8 @@ import logging
 from typing import List, Tuple, Dict
 from PIL import Image
 import numpy as np
-from backend.config import YOLO_WEIGHTS, YOLO_CLASSES_OF_INTEREST
+from backend.config import YOLO_WEIGHTS, YOLO_CLASSES_OF_INTEREST, CLASSROOM_ACTIVITY_WEIGHTS
+from pathlib import Path
 
 # Determine device locally
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -17,13 +18,15 @@ logger = logging.getLogger(__name__)
 
 class YOLODetector:
     """
-    YOLOv8 wrapper for detecting persons and classroom equipment.
+    YOLO26 wrapper for detecting persons and classroom equipment,
+    plus fine-tuned student behavior and activity detection.
     """
 
     _instance = None
 
     def __init__(self):
         self.model = None
+        self.activity_model = None
         self._loaded = False
 
     @classmethod
@@ -33,14 +36,22 @@ class YOLODetector:
         return cls._instance
 
     def load(self):
-        """Load YOLOv8 model."""
-        if self._loaded:
+        """Load YOLO26 model and fine-tuned activity detector if available."""
+        if self._loaded and self.model is not None:
             return
         try:
             from ultralytics import YOLO
             self.model = YOLO(YOLO_WEIGHTS)
             self._loaded = True
-            logger.info(f"✅ YOLOv8 loaded: {YOLO_WEIGHTS}")
+            logger.info(f"✅ YOLO26 loaded: {YOLO_WEIGHTS}")
+
+            if Path(CLASSROOM_ACTIVITY_WEIGHTS).exists():
+                self.activity_model = YOLO(CLASSROOM_ACTIVITY_WEIGHTS)
+                logger.info(f"✅ Fine-Tuned Classroom Activity Model loaded: {CLASSROOM_ACTIVITY_WEIGHTS}")
+            else:
+                self.activity_model = None
+                logger.info(f"ℹ️  Classroom activity model will be loaded once training finishes at: {CLASSROOM_ACTIVITY_WEIGHTS}")
+
         except ImportError:
             logger.warning("⚠️  ultralytics not installed. Run: pip install ultralytics")
             self._loaded = False
@@ -88,11 +99,34 @@ class YOLODetector:
                     })
                     detected_labels.add(mapped_label)
 
+        # Fine-grained classroom activity & behavior detection
+        activity_counts = {}
+        activity_instances = []
+        if self.activity_model is not None:
+            try:
+                act_results = self.activity_model(img_array, conf=0.20, verbose=False)
+                for a_res in act_results:
+                    for a_box in a_res.boxes:
+                        a_cls_id = int(a_box.cls[0])
+                        a_conf = float(a_box.conf[0])
+                        a_label = self.activity_model.names.get(a_cls_id, f"act_{a_cls_id}")
+                        a_bbox = a_box.xyxy[0].tolist()
+                        activity_counts[a_label] = activity_counts.get(a_label, 0) + 1
+                        activity_instances.append({
+                            "label": a_label,
+                            "conf": round(a_conf, 3),
+                            "bbox": a_bbox,
+                        })
+            except Exception as e:
+                logger.warning(f"Classroom activity inference error: {e}")
+
         return {
             "persons": persons,
             "objects": objects,
             "person_count": len(persons),
             "detected_labels": list(detected_labels),
+            "activity_counts": activity_counts,
+            "activity_instances": activity_instances,
         }
 
     def estimate_trainer(self, persons: List[Dict], image_width: int) -> str:
@@ -117,6 +151,8 @@ class YOLODetector:
             "objects": [],
             "person_count": 0,
             "detected_labels": [],
+            "activity_counts": {},
+            "activity_instances": [],
         }
 
     def map_yolo_to_infrastructure(
@@ -131,25 +167,31 @@ class YOLODetector:
             "person" → trainer
         """
         LABEL_MAPPING = {
-            "tv": ["projector", "screen", "monitor"],
+            "tv": ["projector", "screen", "monitor", "whiteboard", "smartboard"],
             "laptop": ["computer", "laptop", "pc"],
-            "cell phone": ["mobile"],
+            "cell phone": ["mobile", "device", "internet"],
+            "chair": ["benches_tables", "benches tables", "benches", "tables", "chair", "chairs", "desk", "desks"],
+            "dining table": ["benches_tables", "benches tables", "benches", "tables", "table", "tables", "desk", "desks"],
+            "book": ["chart_papers", "chart papers", "books", "book", "paper"],
         }
 
         infra_status = {}
-        detected_lower = [l.lower() for l in detected_labels]
+        detected_lower = [l.lower().strip() for l in detected_labels]
 
         for item in required_items:
-            item_lower = item.lower().strip()
+            item_raw = item.lower().strip()
+            item_space = item_raw.replace("_", " ")
+            item_underscore = item_raw.replace(" ", "_")
+            check_variants = {item_raw, item_space, item_underscore}
             found = False
 
             # Direct match
-            if item_lower in detected_lower:
+            if any(v in detected_lower for v in check_variants):
                 found = True
             else:
                 # Reverse mapping check
                 for yolo_label, aliases in LABEL_MAPPING.items():
-                    if item_lower in aliases and yolo_label in detected_lower:
+                    if yolo_label in detected_lower and any(v in aliases for v in check_variants):
                         found = True
                         break
 
