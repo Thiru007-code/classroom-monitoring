@@ -29,6 +29,7 @@ import { QualityRadarChart } from '../components/QualityRadarChart';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AnalysisStepVisualizer } from '../components/AnalysisStepVisualizer';
+import { SessionQualityBreakdown } from '../components/SessionQualityBreakdown';
 
 import { useAnalysis } from '../context/AnalysisContext';
 
@@ -148,6 +149,106 @@ const DEFAULT_INFRASTRUCTURE = [
   'chart_papers',
 ];
 
+const RANDOM_SESSIONS = [
+  {
+    institution_name: 'NSTI Bangalore',
+    course_name: 'Python Web Development',
+    registered_students: 30,
+    time: '10:00 AM',
+    planned_activity: 'Hands-on Web Framework Lab',
+    topic: 'FastAPI Backend Architecture',
+    activity_type: 'practical_session',
+    infrastructure: ['computer', 'whiteboard', 'internet', 'smartboard'],
+  },
+  {
+    institution_name: 'NSTI Chennai',
+    course_name: 'Cloud Computing & DevOps',
+    registered_students: 28,
+    time: '11:30 AM',
+    planned_activity: 'Lecture on Kubernetes Clusters',
+    topic: 'Container Orchestration & CI/CD',
+    activity_type: 'trainer_teaching',
+    infrastructure: ['projector', 'smartboard', 'computer', 'whiteboard'],
+  },
+  {
+    institution_name: 'Government Polytechnic College',
+    course_name: 'Cyber Security & Defense',
+    registered_students: 32,
+    time: '02:00 PM',
+    planned_activity: 'Practical Packet Analysis Lab',
+    topic: 'Wireshark Protocol Inspection',
+    activity_type: 'practical_session',
+    infrastructure: ['computer', 'internet', 'smartboard', 'benches_tables'],
+  },
+  {
+    institution_name: 'National Skill Training Institute',
+    course_name: 'Data Science & Machine Learning',
+    registered_students: 25,
+    time: '09:30 AM',
+    planned_activity: 'Technical Assessment / Test',
+    topic: 'Linear Regression & Classification Test',
+    activity_type: 'assessment',
+    infrastructure: ['whiteboard', 'benches_tables', 'chart_papers'],
+  },
+  {
+    institution_name: 'Advanced Training Institute',
+    course_name: 'Agile Software Engineering',
+    registered_students: 24,
+    time: '01:30 PM',
+    planned_activity: 'Agile Retrospective Discussion',
+    topic: 'Sprint Planning & Team Velocity',
+    activity_type: 'group_discussion',
+    infrastructure: ['whiteboard', 'benches_tables', 'chart_papers'],
+  },
+  {
+    institution_name: 'NSTI Mumbai',
+    course_name: 'IoT & Embedded Systems',
+    registered_students: 26,
+    time: '10:15 AM',
+    planned_activity: 'Hardware Sensor Practical',
+    topic: 'ESP32 MQTT Cloud Telemetry',
+    activity_type: 'practical_session',
+    infrastructure: ['computer', 'benches_tables', 'chart_papers'],
+  },
+  {
+    institution_name: 'Apex Skill Development Centre',
+    course_name: 'Modern Full-Stack Engineering',
+    registered_students: 30,
+    time: '03:00 PM',
+    planned_activity: 'Interactive Code Walkthrough Lecture',
+    topic: 'React State Management Architecture',
+    activity_type: 'trainer_teaching',
+    infrastructure: ['projector', 'computer', 'smartboard'],
+  },
+  {
+    institution_name: 'Government Industrial Training Institute',
+    course_name: 'Database Administration',
+    registered_students: 35,
+    time: '11:00 AM',
+    planned_activity: 'Mid-Term Examination Assessment',
+    topic: 'SQL Normalization & Performance Indexing',
+    activity_type: 'assessment',
+    infrastructure: ['benches_tables', 'whiteboard'],
+  },
+];
+
+const getTodayDate = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getRandomSession = () => {
+  const item = RANDOM_SESSIONS[Math.floor(Math.random() * RANDOM_SESSIONS.length)];
+  return {
+    ...item,
+    date: getTodayDate(), // always today's current dynamic date
+    job_role: 'Trainee', // default for backend compatibility
+  };
+};
+
 export const AnalyzePage = () => {
   const {
     file,
@@ -164,20 +265,33 @@ export const AnalyzePage = () => {
 
   const [expandedImage, setExpandedImage] = useState(null);
 
-  // Form Metadata State
+  // User enters Institution Name, Course Name, and Student Count; Date is dynamically today
   const [formData, setFormData] = useState({
-    institution_name: 'NSTI Bangalore',
-    course_name: 'Python Web Development',
-    job_role: 'Software Engineer Trainee',
-    registered_students: 30,
-    date: new Date().toISOString().split('T')[0],
-    time: '10:30 AM',
-    planned_activity: 'Practical Hands-on Coding Session',
-    topic: 'FastAPI and Database Integration',
+    institution_name: '',
+    course_name: '',
+    registered_students: '',
+    date: getTodayDate(), // dynamic daily date
+    time: '10:00 AM',
+    planned_activity: '',
+    topic: '',
     activity_type: 'practical_session',
+    job_role: 'Trainee',
   });
 
-  const [selectedInfra, setSelectedInfra] = useState(['whiteboard', 'projector', 'computer']);
+  const [selectedInfra, setSelectedInfra] = useState([
+    'whiteboard',
+    'projector',
+    'computer',
+  ]);
+
+  const handleRandomize = () => {
+    const nextSession = getRandomSession();
+    setFormData({
+      ...nextSession,
+      registered_students: String(nextSession.registered_students),
+    });
+    setSelectedInfra(nextSession.infrastructure || ['whiteboard', 'projector', 'computer']);
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -206,20 +320,24 @@ export const AnalyzePage = () => {
     }
 
     try {
+      const instName = formData.institution_name.trim() || 'Classroom Session';
+      const courseName = formData.course_name.trim() || 'Vocational Training';
+      const regStudents = parseInt(formData.registered_students, 10) || 30;
+
       const payload = new FormData();
       payload.append('image', file);
-      payload.append('institution_name', formData.institution_name);
-      payload.append('course_name', formData.course_name);
-      payload.append('job_role', formData.job_role);
-      payload.append('registered_students', formData.registered_students);
-      payload.append('date', formData.date);
+      payload.append('institution_name', instName);
+      payload.append('course_name', courseName);
+      payload.append('job_role', formData.job_role || 'Trainee');
+      payload.append('registered_students', regStudents);
+      payload.append('date', formData.date || getTodayDate());
       payload.append('time', formData.time);
       payload.append('infrastructure_items', JSON.stringify(selectedInfra));
-      payload.append('planned_activity', formData.planned_activity);
-      payload.append('topic', formData.topic);
+      payload.append('planned_activity', formData.planned_activity || 'Hands-on Session');
+      payload.append('topic', formData.topic || 'Classroom Session');
       payload.append('activity_type', formData.activity_type);
 
-      await runAnalysis(payload, file, preview, formData.institution_name);
+      await runAnalysis(payload, file, preview, instName);
       // Auto-scroll to results section when response arrives
       setTimeout(() => {
         document.getElementById('analysis-result-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -287,38 +405,42 @@ export const AnalyzePage = () => {
 
             {/* Metadata Form */}
             <div className="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
-              <h3 className="text-base font-bold text-white mb-4 border-b border-slate-800 pb-2">Session Metadata</h3>
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-4">
+                <h3 className="text-base font-bold text-white">Session Metadata</h3>
+                <button
+                  type="button"
+                  onClick={handleRandomize}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                  title="Auto-fill with a random example if you don't want to enter manually"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                  <span>🎲 Auto-fill Example</span>
+                </button>
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Institution Name</label>
                   <input
                     type="text"
                     value={formData.institution_name}
                     onChange={(e) => setFormData({ ...formData, institution_name: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                    placeholder="Sona College of Technology, Salem"
+                    title={formData.institution_name}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 placeholder-slate-650"
                     required
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Course Name</label>
                   <input
                     type="text"
                     value={formData.course_name}
                     onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Job Role</label>
-                  <input
-                    type="text"
-                    value={formData.job_role}
-                    onChange={(e) => setFormData({ ...formData, job_role: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                    placeholder="e.g. Python Web Development"
+                    title={formData.course_name}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 placeholder-slate-600"
                     required
                   />
                 </div>
@@ -327,15 +449,20 @@ export const AnalyzePage = () => {
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Registered Students</label>
                   <input
                     type="number"
+                    min="1"
                     value={formData.registered_students}
-                    onChange={(e) => setFormData({ ...formData, registered_students: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                    onChange={(e) => setFormData({ ...formData, registered_students: e.target.value })}
+                    placeholder="e.g. 30"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 placeholder-slate-600"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Date</label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 flex items-center justify-between">
+                    <span>Date (Today)</span>
+                    <span className="text-[10px] text-emerald-400 font-mono"></span>
+                  </label>
                   <input
                     type="date"
                     value={formData.date}
@@ -345,18 +472,32 @@ export const AnalyzePage = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Activity Type</label>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 flex items-center justify-between">
+                    <span>Session Mode & Formula</span>
+                    <span className="text-[10px] text-cyan-400 font-mono"></span>
+                  </label>
                   <select
                     value={formData.activity_type}
                     onChange={(e) => setFormData({ ...formData, activity_type: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
                   >
-                    <option value="practical_session">Practical Session</option>
-                    <option value="trainer_teaching">Trainer Lecture / Teaching</option>
-                    <option value="group_discussion">Group Discussion</option>
-                    <option value="assessment">Assessment / Test</option>
+                    <option value="trainer_teaching">🎓 Lecture Session </option>
+                    <option value="assessment">📝 Assessment / Exam </option>
+                    <option value="practical_session">🧪 Practical / Lab </option>
+                    <option value="group_discussion">👥 Group Discussion</option>
                   </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Planned Activity & Topic</label>
+                  <input
+                    type="text"
+                    value={formData.planned_activity}
+                    onChange={(e) => setFormData({ ...formData, planned_activity: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                    placeholder="e.g. Practical Hands-on Lab Session"
+                  />
                 </div>
               </div>
 
@@ -474,6 +615,9 @@ export const AnalyzePage = () => {
                   <QualityRadarChart scoreBreakdown={result.score_breakdown || {}} />
                 </div>
 
+                {/* Session-Specific Multi-Parametric Quality Score Formula & Breakdown */}
+                <SessionQualityBreakdown result={result} />
+
                 {/* Detections Summary Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="glass-card rounded-xl p-4 border border-slate-800">
@@ -481,7 +625,10 @@ export const AnalyzePage = () => {
                       <Users className="w-4 h-4 text-indigo-400" /> Attendance & Count
                     </div>
                     <div className="mt-2 text-xl font-bold text-white">
-                      {result.student_count ?? 0} <span className="text-xs font-normal text-slate-400">students ({Math.round(Number(result.attendance_percentage) || 0)}%)</span>
+                      {result.student_count ?? 0} <span className="text-xs font-normal text-slate-400">/ {result.registered_students || formData.registered_students || 30} students ({Math.round(Number(result.attendance_percentage) || 0)}%)</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-1">
+                      Present: <strong className="text-white">{result.student_count ?? 0}</strong> | Registered: {result.registered_students || formData.registered_students || 30}
                     </div>
                   </div>
 
@@ -514,12 +661,12 @@ export const AnalyzePage = () => {
                     </div>
                   </div>
 
-                  <div className="glass-card rounded-xl p-4 border border-slate-800">
+                  <div className="glass-card rounded-xl p-4 border border-slate-800 flex flex-col justify-between">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase">
                       <Layers className="w-4 h-4 text-cyan-400" /> Classroom Mode
                     </div>
-                    <div className="mt-2 text-sm font-bold text-white capitalize truncate">
-                      {String(result.detected_activities?.[0] || 'In Session').replace('_', ' ')}
+                    <div className="mt-2 text-sm font-bold text-white capitalize break-words leading-snug" title={String(result.detected_activities?.[0] || 'In Session').replaceAll('_', ' ')}>
+                      {String(result.detected_activities?.[0] || 'In Session').replaceAll('_', ' ')}
                     </div>
                   </div>
                 </div>
@@ -577,7 +724,7 @@ export const AnalyzePage = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-mono text-violet-300 bg-violet-500/20 px-2.5 py-1 rounded-full border border-violet-500/30">
-                            {totalTracked} Behaviors Tracked
+                            {totalTracked}/{result.student_count || totalTracked} Students Tracked
                           </span>
                           <span className="text-[11px] font-mono font-bold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30">
                             SE Score: {Math.round(Number(result.engagement_score || 0))}%

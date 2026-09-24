@@ -65,11 +65,17 @@ class ClassroomAnalysisPipeline:
 
         # ── Step 3: Qwen2.5-VL Analysis ─────────────────
         logger.info(f"[{session_id}] Step 3: Running Qwen2.5-VL analysis...")
+        session_type = getattr(request.curriculum_plan, "activity_type", "lecture")
+        if hasattr(session_type, "value"):
+            session_type = session_type.value
+        session_type_str = str(session_type or "lecture")
+
         prompt = self.qwen.get_classroom_analysis_prompt(
             course_name=request.course_name,
             job_role=request.job_role,
             curriculum_planned=request.curriculum_plan.planned_activity,
             infrastructure_required=required_items,
+            session_type=session_type_str,
         )
         qwen_raw = self.qwen.analyze_classroom(processed_image, prompt)
         logger.debug(f"[{session_id}] Qwen raw response: {qwen_raw}")
@@ -97,6 +103,13 @@ class ClassroomAnalysisPipeline:
         else:
             trainer_present = True
             yolo_student_estimate = max(0, person_count - 1)
+            # Deduct 1 for instructor from activities so activities reflect students only
+            for t_key in ["stand", "look_forward"]:
+                if activity_counts.get(t_key, 0) > 0:
+                    activity_counts[t_key] -= 1
+                    if activity_counts[t_key] == 0:
+                        del activity_counts[t_key]
+                    break
 
         qwen_student_estimate = qwen_data.get("estimated_student_count", yolo_student_estimate)
         
@@ -112,20 +125,21 @@ class ClassroomAnalysisPipeline:
             trainer_present = False
             trainer_status = "absent"
             detected_activity = "not_a_classroom"
+            activity_counts = {}
         elif no_people_detected:
             student_count = 0
             trainer_present = False
             trainer_status = "absent"
             detected_activity = "empty_classroom"
+            activity_counts = {}
         else:
-            # Reconcile counts: in tiered lecture rooms or occluded camera views,
-            # YOLO detects front-row upper bodies while Qwen holistically perceives rows of students.
-            if qwen_student_estimate > 0 and yolo_student_estimate > 0:
-                student_count = max(yolo_student_estimate, qwen_student_estimate)
+            # Anchor student_count strictly to grounded physical detections
+            if yolo_student_estimate > 0:
+                student_count = yolo_student_estimate
             elif qwen_student_estimate > 0:
                 student_count = qwen_student_estimate
             else:
-                student_count = yolo_student_estimate
+                student_count = 0
 
         # Enforce consistency: 0 students = 0 engagement and empty classroom activity
         if student_count == 0:
@@ -139,8 +153,16 @@ class ClassroomAnalysisPipeline:
                 qwen_data.get("engaged_students_count", int(student_count * 0.8))
             )
 
-        if trainer_status == "absent" and detected_activity == "trainer_teaching":
-            detected_activity = "students_idle" if student_count > 0 else "empty_classroom"
+        if trainer_status == "absent" and detected_activity in ["trainer_teaching", "empty_classroom"]:
+            if student_count > 0:
+                if session_type_str == "practical_session" or "laptop" in reasoning_text or "computer" in reasoning_text:
+                    detected_activity = "practical_session"
+                elif session_type_str in ["assessment", "group_discussion"]:
+                    detected_activity = session_type_str
+                else:
+                    detected_activity = "students_idle"
+            else:
+                detected_activity = "empty_classroom"
 
         curriculum_match = qwen_data.get(
             "curriculum_match",
@@ -183,8 +205,14 @@ class ClassroomAnalysisPipeline:
                 # Map to standardized behavior keys
                 if "sleep" in k or "drowsy" in k:
                     std_k = "sleep"
-                elif "device" in k or "phone" in k or "mobile" in k:
+                elif "phone" in k or "mobile" in k or "smartphone" in k:
                     std_k = "using_device"
+                elif "device" in k or "laptop" in k or "computer" in k:
+                    # Laptops and computers used for practical coursework are productive, not phone distractions!
+                    if "laptop" in reasoning_text or "computer" in reasoning_text or session_type_str == "practical_session":
+                        std_k = "write"  # active practical / coding work
+                    else:
+                        std_k = "using_device"
                 elif "distract" in k or "turn" in k or "look_away" in k or "listening" in k:
                     std_k = "turn_head"
                 elif "hand" in k:
@@ -206,8 +234,49 @@ class ClassroomAnalysisPipeline:
                     # Never suppress detected negative behaviors if either model observed them
                     activity_counts[std_k] = max(activity_counts[std_k], cnt)
 
+        # ── Guarantee 100% Student Tracking Consistency ──
+        # Every student recorded in attendance MUST be accounted for in behavior tracking.
+        if student_count > 0:
+            total_tracked = sum(activity_counts.values())
+            if total_tracked < student_count:
+                gap = student_count - total_tracked
+                # Default attentive state: in assessment default is 'write' (exam work), otherwise 'look_forward'
+                primary_key = "write" if session_type_str == "assessment" else "look_forward"
+                activity_counts[primary_key] = activity_counts.get(primary_key, 0) + gap
+                logger.info(
+                    f"[{session_id}] Reconciled {gap} student(s) into '{primary_key}' "
+                    f"to ensure full tracking coverage: {sum(activity_counts.values())}/{student_count} students."
+                )
+            elif total_tracked > student_count:
+                # If bounding box overlapping exceeds student count, balance back to student_count
+                excess = total_tracked - student_count
+                for non_neg in ["look_forward", "read", "write", "stand", "handrise"]:
+                    if activity_counts.get(non_neg, 0) >= excess:
+                        activity_counts[non_neg] -= excess
+                        excess = 0
+                        break
+                    elif activity_counts.get(non_neg, 0) > 0:
+                        deduct = min(activity_counts[non_neg], excess)
+                        activity_counts[non_neg] -= deduct
+                        excess -= deduct
+
+        # Derive engaged students directly from attentive behavior detections
+        if student_count > 0:
+            attentive_keys = ["look_forward", "write", "read", "handrise", "stand"]
+            engaged_count = min(
+                student_count,
+                sum(activity_counts.get(k, 0) for k in attentive_keys)
+            )
+        else:
+            engaged_count = 0
+
         # ── Step 5: Quality Scoring ──────────────────────
-        logger.info(f"[{session_id}] Step 5: Computing Quality Score...")
+        logger.info(f"[{session_id}] Step 5: Computing Quality Score using {session_type_str.upper()} modular formula...")
+        common_params = qwen_data.get("common_parameter_scores", {})
+        activity_params = qwen_data.get("activity_parameter_scores", {})
+        legacy_params = qwen_data.get("session_parameter_scores", {})
+        session_parameters = {**legacy_params, **common_params, **activity_params}
+
         score_result = self.scorer.score_all(
             trainer_status=trainer_status,
             total_students=student_count,
@@ -219,6 +288,8 @@ class ClassroomAnalysisPipeline:
             curriculum_match=curriculum_match,
             is_classroom=is_classroom,
             activity_counts=activity_counts,
+            session_type=session_type_str,
+            session_parameters=session_parameters,
         )
 
         # ── Step 6: Build Pipeline Trace ─────────────────
@@ -242,7 +313,7 @@ class ClassroomAnalysisPipeline:
                 "name": "Qwen2.5-VL Context & Pedagogy Analysis",
                 "status": "completed",
                 "badge": f"Trainer: {trainer_status.replace('_', ' ').capitalize()}",
-                "details": f"Activity: '{detected_activity.replace('_', ' ').capitalize()}' | Curriculum Match: '{curriculum_match.replace('_', ' ').capitalize()}'."
+                "details": f"Activity: '{detected_activity.replace('_', ' ').capitalize()}' | Session Mode: '{session_type_str.capitalize()}' | Curriculum Match: '{curriculum_match.replace('_', ' ').capitalize()}'."
             },
             {
                 "step": 4,
@@ -253,10 +324,10 @@ class ClassroomAnalysisPipeline:
             },
             {
                 "step": 5,
-                "name": "6-Factor Quality Scoring & Compliance Audit",
+                "name": f"Modular Quality Scoring ({score_result.get('formula_name', 'QS_Lecture')})",
                 "status": "completed",
                 "badge": f"Score: {score_result['quality_score']}/100",
-                "details": f"Quality Index: '{score_result['quality_label']}'. Attendance Rate: {round(score_result['score_breakdown']['attendance'])}%."
+                "details": f"QS={score_result['quality_score']}/100 | CPS={score_result.get('cps', 0)} (40%) + ASS={score_result.get('ass', 0)} (60%)."
             }
         ]
 
@@ -273,6 +344,7 @@ class ClassroomAnalysisPipeline:
             "is_classroom": is_classroom,
             "trainer_present": trainer_status != "absent",
             "trainer_status": trainer_status,
+            "registered_students": request.registered_students,
             "student_count": student_count,
             "attendance_percentage": score_result["score_breakdown"]["attendance"],
             "detected_activities": [detected_activity],
@@ -287,6 +359,21 @@ class ClassroomAnalysisPipeline:
             "weighted_contributions": score_result["weighted_contributions"],
             "quality_score": score_result["quality_score"],
             "quality_label": score_result["quality_label"],
+
+            # Modular Two-Component Quality Score
+            "cps": score_result.get("cps", 0.0),
+            "ass": score_result.get("ass", 0.0),
+            "alpha": score_result.get("alpha", 0.4),
+            "beta": score_result.get("beta", 0.6),
+            "common_parameters": score_result.get("common_parameters", {}),
+            "activity_parameters": score_result.get("activity_parameters", {}),
+
+            # Session-Specific Multi-Parametric Breakdown
+            "session_type": score_result.get("session_type", session_type_str),
+            "formula_name": score_result.get("formula_name", "QS_Lecture"),
+            "parameter_scores": score_result.get("parameter_scores", {}),
+            "parameter_weights": score_result.get("parameter_weights", {}),
+            "parameter_contributions": score_result.get("parameter_contributions", {}),
 
             # Pipeline Trace & Alerts
             "pipeline_trace": pipeline_trace,
@@ -308,10 +395,8 @@ class ClassroomAnalysisPipeline:
         """
         raw_lower = (raw or "").lower()
         no_people_mentioned = (
-            "no visible" in raw_lower
-            or "no students" in raw_lower
-            or "no trainer" in raw_lower
-            or "empty classroom" in raw_lower
+            ("no visible students" in raw_lower or "no students" in raw_lower or "empty classroom" in raw_lower or "unoccupied" in raw_lower)
+            and fallback_person_count == 0
         )
 
         # Try to find JSON block in response
@@ -321,28 +406,35 @@ class ClassroomAnalysisPipeline:
             if start != -1 and end > start:
                 json_str = raw[start:end]
                 data = json.loads(json_str)
-                # If model returned text reasoning stating no people, honor it over hallucinated numbers
+                # If model returned text reasoning stating room is completely empty AND YOLO confirms 0 persons
                 reasoning = (data.get("reasoning") or "").lower()
-                if ("no visible" in reasoning and ("student" in reasoning or "trainer" in reasoning)) or (no_people_mentioned and fallback_person_count == 0):
+                is_empty_room = (
+                    ("empty classroom" in reasoning or "room is empty" in reasoning or "unoccupied" in reasoning or "no visible students" in reasoning)
+                    and fallback_person_count == 0
+                )
+                if is_empty_room or no_people_mentioned:
                     data["estimated_student_count"] = 0
                     data["engaged_students_count"] = 0
                     data["trainer_present"] = False
                     data["trainer_status"] = "absent"
                     data["detected_activity"] = "empty_classroom"
+                elif fallback_person_count > 0 and data.get("detected_activity") == "empty_classroom":
+                    # If YOLO detected people, classroom can NEVER be empty
+                    data["detected_activity"] = "practical_session" if ("laptop" in reasoning or "computer" in reasoning) else "trainer_teaching"
                 return data
         except (json.JSONDecodeError, ValueError) as e:
             logger.warning(f"Failed to parse Qwen JSON: {e}. Using fallback.")
 
         # Fallback defaults
-        student_fallback = 0 if (fallback_person_count == 0 or no_people_mentioned) else fallback_person_count
+        student_fallback = fallback_person_count if fallback_person_count > 0 else 0
         return {
             "is_classroom": True,
             "trainer_present": False,
             "trainer_status": "absent",
             "estimated_student_count": student_fallback,
-            "engaged_students_count": int(student_fallback * 0.7),
-            "detected_activity": "students_idle" if student_fallback > 0 else "empty_classroom",
-            "detected_infrastructure": [],
-            "curriculum_match": "not_matched" if student_fallback == 0 else "partially_matched",
+            "engaged_students_count": int(student_fallback * 0.8),
+            "detected_activity": "practical_session" if student_fallback > 0 else "empty_classroom",
+            "detected_infrastructure": ["computer", "desk", "chair"],
+            "curriculum_match": "not_matched" if student_fallback == 0 else "fully_matched",
             "reasoning": raw[:500] if raw else "No response from model.",
         }

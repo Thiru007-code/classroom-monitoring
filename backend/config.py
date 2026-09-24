@@ -68,6 +68,94 @@ STUDENT_BEHAVIOR_WEIGHTS = {
 
 
 # ─────────────────────────────────────────────
+# Modular Quality Score Weights (CPS: 40%, ASS: 60%)
+# QS = alpha(CPS) + beta(ASS) = 0.4(CPS) + 0.6(ASS)
+# ─────────────────────────────────────────────
+QS_ALPHA = 0.4  # Weight of Common Parameter Score (CPS)
+QS_BETA = 0.6   # Weight of Activity-Specific Score (ASS)
+
+# 1. Universal Common Parameters (CPS) — Evaluated across all classroom sessions (Sum = 100)
+COMMON_PARAMETERS = {
+    "student_attendance": 15,
+    "mentor_presence": 15,
+    "student_attention": 15,
+    "student_participation": 15,
+    "mentor_guidance": 15,
+    "seating_arrangement": 10,
+    "classroom_discipline": 10,
+    "classroom_organization": 5,
+}
+
+# 2. Activity-Specific Parameters (ASS) — Unique parameters per session activity (Sum = 100 per activity)
+ACTIVITY_SPECIFIC_PARAMETERS = {
+    # 1. LECTURE (10 parameters = 100 marks)
+    "lecture": {
+        "student_occupancy": 10,
+        "board_availability": 10,
+        "projector_availability": 10,
+        "laptop_availability": 10,
+        "laptop_usage": 10,
+        "projector_usage": 10,
+        "students_facing_mentor_board": 15,
+        "board_utilization": 10,
+        "classroom_crowding": 10,
+        "proper_seating": 5,
+    },
+    # 2. ASSESSMENT / EXAM (10 parameters = 100 marks)
+    "assessment": {
+        "question_paper": 10,
+        "answer_sheet": 10,
+        "pen_writing_material": 10,
+        "looking_at_paper": 15,
+        "writing_posture": 10,
+        "unauthorized_communication": 15,
+        "exam_environment": 10,
+        "seating_distance": 10,
+        "students_leaving_seat": 5,
+        "classroom_visibility": 5,
+    },
+    # 3. PRACTICAL / LAB (7 parameters = 100 marks)
+    "practical_session": {
+        "required_equipment": 15,
+        "required_materials": 15,
+        "equipment_usage": 15,
+        "student_activity": 15,
+        "hands_on_activity": 20,
+        "workspace_usage": 10,
+        "proper_arrangement": 10,
+    },
+    # 4. GROUP DISCUSSION (6 parameters = 100 marks)
+    "group_discussion": {
+        "groups_properly_formed": 15,
+        "group_size_balance": 15,
+        "student_interaction": 20,
+        "face_to_face_orientation": 20,
+        "active_discussion": 15,
+        "group_engagement": 15,
+    },
+}
+
+# Backwards compatibility alias
+SESSION_SPECIFIC_WEIGHTS = ACTIVITY_SPECIFIC_PARAMETERS
+
+# Aliases to map user/model strings to standard session keys
+SESSION_TYPE_ALIASES = {
+    "lecture": "lecture",
+    "trainer_teaching": "lecture",
+    "teaching": "lecture",
+    "assessment": "assessment",
+    "test": "assessment",
+    "exam": "assessment",
+    "practical_session": "practical_session",
+    "practical": "practical_session",
+    "lab": "practical_session",
+    "hands_on": "practical_session",
+    "group_discussion": "group_discussion",
+    "gd": "group_discussion",
+    "discussion": "group_discussion",
+}
+
+# ─────────────────────────────────────────────
 # Quality Score Weights (must sum to 1.0)
 # ─────────────────────────────────────────────
 QS_WEIGHTS = {

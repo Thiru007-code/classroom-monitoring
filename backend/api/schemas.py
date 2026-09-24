@@ -3,7 +3,7 @@ schemas.py — Pydantic models for API input/output validation
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from enum import Enum
 from datetime import datetime
 
@@ -58,7 +58,7 @@ class AnalysisRequest(BaseModel):
     """Metadata sent alongside the classroom image"""
     institution_name: str = Field(..., example="NSTI Bangalore")
     course_name: str = Field(..., example="Python Programming")
-    job_role: str = Field(..., example="Software Developer")
+    job_role: Optional[str] = Field("", example="Software Developer")
     registered_students: int = Field(..., gt=0, example=30)
     date: str = Field(..., example="2025-07-24")
     time: str = Field(..., example="10:00 AM")
@@ -133,6 +133,7 @@ class AnalysisResponse(BaseModel):
     is_classroom: bool = True
     trainer_present: bool
     trainer_status: TrainerStatus
+    registered_students: Optional[int] = 30
     student_count: int
     attendance_percentage: float
     detected_activities: List[str]
@@ -147,6 +148,21 @@ class AnalysisResponse(BaseModel):
     weighted_contributions: WeightedContribution
     quality_score: float
     quality_label: str
+
+    # Modular Two-Component Quality Score (CPS: 40%, ASS: 60%)
+    cps: Optional[float] = None
+    ass: Optional[float] = None
+    alpha: Optional[float] = 0.4
+    beta: Optional[float] = 0.6
+    common_parameters: Optional[Dict[str, Any]] = None
+    activity_parameters: Optional[Dict[str, Any]] = None
+
+    # Session-Specific Multi-Parametric Scoring
+    session_type: Optional[str] = "lecture"
+    formula_name: Optional[str] = "QS_Lecture"
+    parameter_scores: Optional[Dict[str, float]] = None
+    parameter_weights: Optional[Dict[str, float]] = None
+    parameter_contributions: Optional[Dict[str, float]] = None
 
     # Alerts
     alerts: List[Alert]

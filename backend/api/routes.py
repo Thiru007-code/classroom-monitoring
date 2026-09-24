@@ -32,7 +32,7 @@ async def analyze_classroom(
     image: UploadFile = File(..., description="Classroom image (JPG/PNG/WEBP)"),
     institution_name: str = Form(...),
     course_name: str = Form(...),
-    job_role: str = Form(...),
+    job_role: Optional[str] = Form("General"),
     registered_students: int = Form(...),
     date: str = Form(...),
     time: str = Form(...),

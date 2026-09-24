@@ -56,10 +56,11 @@ class YOLODetector:
             logger.warning("⚠️  ultralytics not installed. Run: pip install ultralytics")
             self._loaded = False
 
-    def detect(self, image: Image.Image, confidence_threshold: float = 0.18) -> Dict:
+    def detect(self, image: Image.Image, confidence_threshold: float = 0.15) -> Dict:
         """
-        Run YOLO detection on a classroom image.
-        Default confidence threshold set to 0.18 for optimal crowded classroom detection.
+        Run high-resolution dual-model YOLO detection on a classroom image.
+        Uses imgsz=1024 and iou=0.45 for optimal detection of crowded, distant back-row students,
+        and performs spatial fusion between person boxes and student behavior instances.
         """
         if not self._loaded:
             self.load()
@@ -69,7 +70,8 @@ class YOLODetector:
             return self._empty_result()
 
         img_array = np.array(image)
-        results = self.model(img_array, conf=confidence_threshold, verbose=False)
+        # High resolution inference to preserve small heads/bodies in back rows
+        results = self.model(img_array, conf=confidence_threshold, imgsz=1024, iou=0.45, verbose=False)
 
         persons = []
         objects = []
@@ -86,7 +88,8 @@ class YOLODetector:
                     persons.append({
                         "bbox": bbox,
                         "conf": round(conf, 3),
-                        "label": "person"
+                        "label": "person",
+                        "assigned_activity": None
                     })
                     detected_labels.add("person")
 
@@ -100,18 +103,16 @@ class YOLODetector:
                     detected_labels.add(mapped_label)
 
         # Fine-grained classroom activity & behavior detection
-        activity_counts = {}
         activity_instances = []
         if self.activity_model is not None:
             try:
-                act_results = self.activity_model(img_array, conf=0.20, verbose=False)
+                act_results = self.activity_model(img_array, conf=0.12, imgsz=1024, iou=0.45, verbose=False)
                 for a_res in act_results:
                     for a_box in a_res.boxes:
                         a_cls_id = int(a_box.cls[0])
                         a_conf = float(a_box.conf[0])
                         a_label = self.activity_model.names.get(a_cls_id, f"act_{a_cls_id}")
                         a_bbox = a_box.xyxy[0].tolist()
-                        activity_counts[a_label] = activity_counts.get(a_label, 0) + 1
                         activity_instances.append({
                             "label": a_label,
                             "conf": round(a_conf, 3),
@@ -119,6 +120,49 @@ class YOLODetector:
                         })
             except Exception as e:
                 logger.warning(f"Classroom activity inference error: {e}")
+
+        # Spatial Fusion: associate each student person box with fine-grained behavior
+        def box_containment_or_overlap(boxA, boxB):
+            xA = max(boxA[0], boxB[0])
+            yA = max(boxA[1], boxB[1])
+            xB = min(boxA[2], boxB[2])
+            yB = min(boxA[3], boxB[3])
+            interArea = max(0.0, xB - xA) * max(0.0, yB - yA)
+            minArea = max(1e-6, min(
+                (boxA[2] - boxA[0]) * (boxA[3] - boxA[1]),
+                (boxB[2] - boxB[0]) * (boxB[3] - boxB[1])
+            ))
+            return interArea / float(minArea)
+
+        matched_act_indices = set()
+        for p in persons:
+            best_overlap = 0.0
+            best_idx = -1
+            for idx, act in enumerate(activity_instances):
+                ov = box_containment_or_overlap(p["bbox"], act["bbox"])
+                if ov > best_overlap and ov >= 0.20:
+                    best_overlap = ov
+                    best_idx = idx
+            if best_idx != -1:
+                p["assigned_activity"] = activity_instances[best_idx]["label"]
+                matched_act_indices.add(best_idx)
+
+        # If activity model detected student actions that person detector missed (e.g. sitting behind desk), include them
+        for idx, act in enumerate(activity_instances):
+            if idx not in matched_act_indices:
+                persons.append({
+                    "bbox": act["bbox"],
+                    "conf": act["conf"],
+                    "label": "person",
+                    "assigned_activity": act["label"]
+                })
+                detected_labels.add("person")
+
+        # Compile final activity counts directly from grounded detections
+        activity_counts = {}
+        for p in persons:
+            act_lbl = p.get("assigned_activity") or "look_forward"
+            activity_counts[act_lbl] = activity_counts.get(act_lbl, 0) + 1
 
         return {
             "persons": persons,

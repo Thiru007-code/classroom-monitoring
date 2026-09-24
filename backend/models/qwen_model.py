@@ -17,8 +17,16 @@ import base64
 import io
 import httpx
 from PIL import Image
-from typing import Optional
-from backend.config import OLLAMA_HOST, OLLAMA_MODEL_NAME, OLLAMA_TIMEOUT
+from typing import Optional, Dict, List
+from backend.config import (
+    OLLAMA_HOST,
+    OLLAMA_MODEL_NAME,
+    OLLAMA_TIMEOUT,
+    COMMON_PARAMETERS,
+    ACTIVITY_SPECIFIC_PARAMETERS,
+    SESSION_SPECIFIC_WEIGHTS,
+    SESSION_TYPE_ALIASES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -156,75 +164,83 @@ class QwenVLModel:
     def get_classroom_analysis_prompt(
         self,
         course_name: str,
-        job_role: str,
-        curriculum_planned: str,
-        infrastructure_required: list,
+        job_role: Optional[str] = "",
+        curriculum_planned: str = "",
+        infrastructure_required: Optional[list] = None,
+        session_type: str = "lecture",
     ) -> str:
         """
-        Generate an objective prompt for classroom analysis.
-        Provides clear, unbiased guidance for detecting teachers at lecterns/podiums,
-        students across tiered rows, and classroom infrastructure.
+        Generate an objective prompt for classroom analysis tailored to the session type.
+        Evaluates both Common Parameter Score (CPS) and Activity-Specific Score (ASS).
         """
-        infra_list = ", ".join(infrastructure_required)
+        infra_list = ", ".join(infrastructure_required or [])
+        resolved_type = SESSION_TYPE_ALIASES.get(
+            str(session_type or "").lower().strip().replace(" ", "_"), "lecture"
+        )
+        activity_params = ACTIVITY_SPECIFIC_PARAMETERS.get(
+            resolved_type, ACTIVITY_SPECIFIC_PARAMETERS["lecture"]
+        )
+        common_params = COMMON_PARAMETERS
+
+        common_instructions = ", ".join(list(common_params.keys()))
+        activity_instructions = ", ".join(list(activity_params.keys()))
+
+        common_params_json = ",\n    ".join([f'"{p}": 85' for p in common_params.keys()])
+        activity_params_json = ",\n    ".join([f'"{p}": 85' for p in activity_params.keys()])
+
+        job_role_line = f"Job Role: {job_role}\n" if job_role else ""
+
         return f"""You are an AI classroom quality analyst for a vocational and skill development training program.
 
+Session Type: {resolved_type.upper()}
 Course: {course_name}
-Job Role: {job_role}
-Planned Activity Today: {curriculum_planned}
+{job_role_line}Planned Activity Today: {curriculum_planned}
 Required Infrastructure: {infra_list}
 
 Analyze this classroom image carefully. Provide your evaluation in valid JSON format:
 {{
   "is_classroom": true,
+  "session_type": "{resolved_type}",
   "trainer_present": true,
   "trainer_status": "teaching",
   "staff_count": 1,
-  "estimated_student_count": 30,
-  "engaged_students_count": 25,
-  "detected_activity": "trainer_teaching",
+  "estimated_student_count": 0,
+  "engaged_students_count": 0,
+  "detected_activity": "{'trainer_teaching' if resolved_type == 'lecture' else resolved_type}",
   "detected_infrastructure": ["podium", "desk", "chair"],
   "curriculum_match": "fully_matched",
   "student_behaviors": {{
-    "look_forward": 20,
-    "write": 3,
-    "read": 2,
+    "look_forward": 0,
+    "write": 0,
+    "read": 0,
     "handrise": 0,
-    "turn_head": 2,
-    "using_device": 1,
+    "turn_head": 0,
+    "using_device": 0,
     "sleep": 0
+  }},
+  "common_parameter_scores": {{
+    {common_params_json}
+  }},
+  "activity_parameter_scores": {{
+    {activity_params_json}
   }},
   "reasoning": "Detailed visual description of trainer location, student count across rows, activities, and equipment."
 }}
 
 Evaluation Guidelines:
-- is_classroom: Set true for lecture halls, classrooms, training labs, or workshops. Set false only if non-educational (e.g. outdoors, living room, street).
-- Trainer Detection:
-  * Check the front of the room, lectern, podium, desk, or board. A person standing in front facing students or lecturing is the instructor: trainer_present=true, trainer_status="teaching".
-  * If an instructor is in the room but sitting passively or inactive: trainer_present=true, trainer_status="present_inactive".
-  * If no instructor is present: trainer_present=false, trainer_status="absent".
-- Student Count:
-  * Carefully count or estimate all visible students seated in chairs, desks, or tiered auditorium rows.
-  * If the room is completely unoccupied with 0 people, set estimated_student_count=0, engaged_students_count=0, trainer_present=false, trainer_status="absent", detected_activity="empty_classroom".
-- Student Engagement & Specific Behaviors:
-  * In "student_behaviors", estimate the number of students observed in each state:
-    - look_forward: attentive listening, watching the trainer/screen/board
-    - write: writing notes or doing coursework
-    - read: reading book or monitor
-    - handrise: raising hand to ask or answer questions
-    - turn_head: looking away from instruction, talking with neighbor, distracted, or not listening
-    - using_device: holding/looking down at smartphone or unapproved device
-    - sleep: resting head down on desk, sleeping, or drowsy
-  * engaged_students_count: total students actively paying attention or working.
-- Detected Activity: Choose one of:
-  * "trainer_teaching": teacher presenting, lecturing, or addressing students.
-  * "practical_session": students actively working on laptops, computers, or lab equipment.
-  * "group_discussion": students collaborating in teams.
-  * "assessment": students taking a formal test/exam.
-  * "students_idle": students present but disengaged or unattended.
-  * "empty_classroom": completely empty room with 0 students and 0 staff.
-  * "not_a_classroom": non-educational scene.
-- Detected Infrastructure: List visible items (e.g. podium, whiteboard, projector, screen, computer, laptop, desk, chair, benches).
-- Curriculum Match: "fully_matched", "partially_matched", or "not_matched".
+- is_classroom: Set true for lecture halls, classrooms, training labs, or workshops. Set false only if non-educational.
+- Common Parameters (CPS - Common to all sessions, 0-100 scale):
+  [{common_instructions}]
+  Evaluate: student attendance rate, mentor presence, student attention/focus, active participation, mentor guidance/monitoring, seating arrangement order, classroom discipline (zero phone/sleep), and classroom organization.
+- Activity-Specific Parameters (ASS - Mode: {resolved_type.upper()}, 0-100 scale):
+  [{activity_instructions}]
+  * For Lecture: student occupancy, board availability, projector availability, laptop availability, laptop usage, projector usage, students facing mentor/board, board utilization, classroom crowding, proper seating.
+  * For Assessment: question paper, answer sheet, pen/writing material, looking at paper, writing posture, unauthorized communication (silence), exam environment, seating distance, students leaving seat, classroom visibility.
+  * For Practical: required equipment, required materials, equipment usage, student activity, hands-on activity, workspace usage, proper arrangement.
+  * For Group Discussion: groups properly formed, group size balance, student interaction, face-to-face orientation, active discussion, group engagement.
+- Student Count & Behaviors:
+  * Count visible students accurately. The sum of student_behaviors must equal estimated_student_count.
+  * If the room is completely empty, set estimated_student_count=0, trainer_present=false, trainer_status="absent", detected_activity="empty_classroom".
 - Output ONLY the valid JSON object, nothing else."""
 
     def check_ollama_running(self) -> bool:
