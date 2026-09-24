@@ -23,8 +23,8 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 # Your downloaded model: qwen2.5vl:7b
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "classroom-qwen:latest")
 
-# Timeout in seconds for Ollama inference (7B model ~10–30s per image, up to 300s for CPU cold start)
-OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "300"))
+# Timeout in seconds for Ollama inference (~15–30s per image with optimized 448px resolution)
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))
 
 # ─────────────────────────────────────────────
 ## YOLO26 weights (auto-downloads yolo26n.pt if not found)
@@ -213,7 +213,7 @@ CURRICULUM_SCORES = {
 # ─────────────────────────────────────────────
 # Image Settings
 # ─────────────────────────────────────────────
-IMAGE_SIZE = (1024, 1024)       # High-detail resolution for Qwen VL multimodal input
+IMAGE_SIZE = (448, 448)         # Optimized resolution for Qwen VL multimodal input (fast inference & zero CUDA buffer overrun)
 MAX_IMAGE_SIZE_MB = 15          # Reject images larger than this
 
 # ─────────────────────────────────────────────

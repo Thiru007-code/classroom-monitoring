@@ -101,11 +101,15 @@ class QwenVLModel:
 
     @staticmethod
     def _image_to_base64(image: Image.Image) -> str:
-        """Convert PIL Image to base64 string for Ollama API."""
+        """Convert PIL Image to base64 string for Ollama API with optimal vision resolution."""
         if image.mode != "RGB":
             image = image.convert("RGB")
+        target_size = (448, 448)
+        if image.width > target_size[0] or image.height > target_size[1]:
+            image = image.copy()
+            image.thumbnail(target_size, Image.LANCZOS)
         buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=92)
+        image.save(buffer, format="JPEG", quality=85)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     def analyze_classroom(self, image: Image.Image, prompt: str) -> str:
@@ -133,7 +137,7 @@ class QwenVLModel:
             "stream": False,
             "options": {
                 "temperature": 0,     # Deterministic output for structured JSON
-                "num_predict": 512,   # Max tokens to generate
+                "num_predict": 350,   # Optimal tokens for high speed and complete output
             },
         }
 
@@ -168,27 +172,18 @@ class QwenVLModel:
         curriculum_planned: str = "",
         infrastructure_required: Optional[list] = None,
         session_type: str = "lecture",
+        person_count: Optional[int] = None,
     ) -> str:
         """
         Generate an objective prompt for classroom analysis tailored to the session type.
-        Evaluates both Common Parameter Score (CPS) and Activity-Specific Score (ASS).
+        Enforces strict visual verification to eliminate trainer and attendance hallucinations.
         """
         infra_list = ", ".join(infrastructure_required or [])
         resolved_type = SESSION_TYPE_ALIASES.get(
             str(session_type or "").lower().strip().replace(" ", "_"), "lecture"
         )
-        activity_params = ACTIVITY_SPECIFIC_PARAMETERS.get(
-            resolved_type, ACTIVITY_SPECIFIC_PARAMETERS["lecture"]
-        )
-        common_params = COMMON_PARAMETERS
-
-        common_instructions = ", ".join(list(common_params.keys()))
-        activity_instructions = ", ".join(list(activity_params.keys()))
-
-        common_params_json = ",\n    ".join([f'"{p}": 85' for p in common_params.keys()])
-        activity_params_json = ",\n    ".join([f'"{p}": 85' for p in activity_params.keys()])
-
         job_role_line = f"Job Role: {job_role}\n" if job_role else ""
+        person_hint = f"Spatial scan detected {person_count} person(s) in this room.\n" if person_count is not None else ""
 
         return f"""You are an AI classroom quality analyst for a vocational and skill development training program.
 
@@ -196,18 +191,19 @@ Session Type: {resolved_type.upper()}
 Course: {course_name}
 {job_role_line}Planned Activity Today: {curriculum_planned}
 Required Infrastructure: {infra_list}
-
-Analyze this classroom image carefully. Provide your evaluation in valid JSON format:
+{person_hint}
+Analyze this classroom image carefully. Provide your evaluation strictly in valid JSON format:
 {{
   "is_classroom": true,
+  "reasoning": "Accurate, factual visual description of what is actually visible. If no trainer is present, explicitly state that no trainer is present.",
   "session_type": "{resolved_type}",
-  "trainer_present": true,
-  "trainer_status": "teaching",
-  "staff_count": 1,
+  "trainer_present": false,
+  "trainer_status": "absent",
+  "staff_count": 0,
   "estimated_student_count": 0,
   "engaged_students_count": 0,
   "detected_activity": "{'trainer_teaching' if resolved_type == 'lecture' else resolved_type}",
-  "detected_infrastructure": ["podium", "desk", "chair"],
+  "detected_infrastructure": ["desk", "chair"],
   "curriculum_match": "fully_matched",
   "student_behaviors": {{
     "look_forward": 0,
@@ -217,30 +213,19 @@ Analyze this classroom image carefully. Provide your evaluation in valid JSON fo
     "turn_head": 0,
     "using_device": 0,
     "sleep": 0
-  }},
-  "common_parameter_scores": {{
-    {common_params_json}
-  }},
-  "activity_parameter_scores": {{
-    {activity_params_json}
-  }},
-  "reasoning": "Detailed visual description of trainer location, student count across rows, activities, and equipment."
+  }}
 }}
 
 Evaluation Guidelines:
 - is_classroom: Set true for lecture halls, classrooms, training labs, or workshops. Set false only if non-educational.
-- Common Parameters (CPS - Common to all sessions, 0-100 scale):
-  [{common_instructions}]
-  Evaluate: student attendance rate, mentor presence, student attention/focus, active participation, mentor guidance/monitoring, seating arrangement order, classroom discipline (zero phone/sleep), and classroom organization.
-- Activity-Specific Parameters (ASS - Mode: {resolved_type.upper()}, 0-100 scale):
-  [{activity_instructions}]
-  * For Lecture: student occupancy, board availability, projector availability, laptop availability, laptop usage, projector usage, students facing mentor/board, board utilization, classroom crowding, proper seating.
-  * For Assessment: question paper, answer sheet, pen/writing material, looking at paper, writing posture, unauthorized communication (silence), exam environment, seating distance, students leaving seat, classroom visibility.
-  * For Practical: required equipment, required materials, equipment usage, student activity, hands-on activity, workspace usage, proper arrangement.
-  * For Group Discussion: groups properly formed, group size balance, student interaction, face-to-face orientation, active discussion, group engagement.
+- CRITICAL TRAINER VERIFICATION (DO NOT HALLUCINATE):
+  * Only set trainer_present=true and trainer_status="teaching" IF an actual human instructor is clearly visible standing at the front or near a board.
+  * An empty podium, desk, or board DOES NOT mean a trainer is present!
+  * If no instructor is visibly standing at the front, trainer_present MUST be false and trainer_status MUST be "absent".
+  * NEVER claim "a trainer is standing" or "a trainer appears to be teaching" if no person is standing there.
 - Student Count & Behaviors:
   * Count visible students accurately. The sum of student_behaviors must equal estimated_student_count.
-  * If the room is completely empty, set estimated_student_count=0, trainer_present=false, trainer_status="absent", detected_activity="empty_classroom".
+  * If the room is completely empty, set estimated_student_count=0, trainer_present=false, trainer_status="absent", detected_activity="empty_classroom", and state in reasoning that the classroom is unoccupied.
 - Output ONLY the valid JSON object, nothing else."""
 
     def check_ollama_running(self) -> bool:
