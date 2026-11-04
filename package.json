@@ -1,0 +1,10 @@
+{
+  "name": "mini-project-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix MINI_PROJECT/frontend run dev",
+    "build": "npm --prefix MINI_PROJECT/frontend run build"
+  }
+}
+
